@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart City Public Dashboard</title>
+
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/main.js" defer></script>
+  <script src="../js/ui.js" defer></script>
+  <script src="../js/transport.js" defer></script>
+</head>
+
+<body>
+
+  <nav>
+    <a href="index.html" class="active">Home</a>
+    <a href="overview.html">Overview</a>
+    <a href="traffic.html">Traffic</a>
+    <a href="transport.html">Transport</a>
+    <a href="weather.html">Weather</a>
+    <a href="accidents.html">Accidents</a>
+    <a href="#" id="logout-btn" style="margin-left:auto;">Logout</a>
+  </nav>
+
+  <div class="container">
+    <h1>Public Transport & Carpark Availability</h1>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <h2>Carpark Availability</h2>
+        <div class="controls">
+          <input id="filter-carpark" type="text" placeholder="Search carpark…" />
+          <select id="filter-indicator">
+            <option value="">All Indicators</option>
+            <option value="Available">Available</option>
+            <option value="Filling Fast">Filling Fast</option>
+            <option value="Almost Full">Almost Full</option>
+            <option value="Full">Full</option>
+          </select>
+          <button id="btn-carpark-refresh">Refresh</button>
+        </div>
+        <div id="carpark-table" class="table-wrap" style="margin-top:12px;">
+          Loading carparks…
+        </div>
+        <div id="carpark-progress" class="hidden" style="position: absolute; top: 90px; right: 40px; z-index: 9999;
+            width: 220px; background: rgba(0,0,0,0.7);
+            padding: 10px 14px; border-radius: 8px; color: white; font-size: 13px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);">
+          <div style="margin-bottom: 6px;">Overall Availability</div>
+          <div style="width: 100%; background: #333; border-radius: 4px;">
+            <div id="carpark-bar" style="height: 10px; border-radius: 4px;
+         background: #4caf50; width: 0%; transition: width 0.5s;"></div>
+          </div>
+          <div id="carpark-percent" style="margin-top: 6px; font-size: 12px; color: #aaa;">
+            0 % available
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Bus Services</h2>
+        <div class="controls">
+          <input id="filter-bus" type="text" placeholder="Search bus stop / service…" />
+          <button id="btn-bus-refresh">Refresh</button>
+        </div>
+        <div id="bus-table" class="table-wrap" style="margin-top:12px;">
+          Loading bus info…
+        </div>
+      </div>
+    </div>
+
+  <footer class="footer">
+    <p>&copy; 2025 Smart City Project</p>
+  </footer>
+
+</body>
+
+</html>
