@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart City Public Dashboard</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/main.js" defer></script>
+  <script src="../js/ui.js" defer></script>
+  <script src="../js/index.js" defer></script>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="active">Home</a>
+  <a href="overview.html">Overview</a>
+  <a href="traffic.html">Traffic</a>
+  <a href="transport.html">Transport</a>
+  <a href="weather.html">Weather</a>
+  <a href="accidents.html">Accidents</a>
+  <a href="#" id="logout-btn" style="margin-left:auto;">Logout</a>
+</nav>
+
+
+  <div class="container">
+    <h1>Welcome to Smart City Dashboard</h1>
+    <p class="muted">Live updates on traffic, transport, and weather. Updated every 30 seconds.</p>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <h2>Quick Search</h2>
+        <div class="controls">
+          <input type="text" id="q-road" placeholder="Search road / area..." />
+          <button id="q-btn">Search</button>
+        </div>
+        <div id="q-results" class="table-wrap" style="margin-top:12px;">
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Traffic Snapshot (Chart)</h2>
+        <canvas id="traffic-chart" width="400" height="250" aria-label="Traffic preview chart" role="img"></canvas>
+        <div class="muted" id="traffic-meta" style="margin-top:8px;">
+          Loading traffic data…
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>&copy; 2025 Smart City Project</p>
+  </footer>
+
+</body>
+</html>
