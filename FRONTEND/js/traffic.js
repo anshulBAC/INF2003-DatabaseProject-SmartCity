@@ -1,49 +1,94 @@
-const trafficOut = ui.qs("#traffic-table");
-const filterRoad = ui.qs("#filter-road");
-const filterCond = ui.qs("#filter-condition");
-const btnRefresh = ui.qs("#btn-refresh");
-const btnPause = ui.qs("#btn-pause");
+const listOut = document.querySelector("#traffic-list");
+const filterRoad = document.querySelector("#filter-road");
+const filterCond = document.querySelector("#filter-condition");
+const btnRefresh = document.querySelector("#btn-refresh");
+const btnPause = document.querySelector("#btn-pause");
 
 let paused = false;
 
-if (btnPause) {
-  btnPause.addEventListener("click", () => {
-    paused = !paused;
-    btnPause.textContent = paused ? "Resume Auto-Refresh" : "Pause Auto-Refresh";
-  });
+btnPause?.addEventListener("click", () => {
+  paused = !paused;
+  btnPause.textContent = paused ? "Resume Auto-Refresh" : "Pause Auto-Refresh";
+});
+
+function mapConditionFromSpeed(speed) {
+  if (speed < 20) return "Jam";
+  if (speed < 40) return "Heavy";
+  if (speed < 60) return "Moderate";
+  return "Smooth";
 }
-function getTrafficColor(condition) {
-  const cond = condition?.toLowerCase() || '';
-  if (cond.includes('smooth')) return '#00FF00';
-  if (cond.includes('moderate')) return '#FFD700';
-  if (cond.includes('heavy')) return '#FF6B00'; 
-  if (cond.includes('jam')) return '#FF0000';
-  return '#FF0000';
+
+function getBadge(condition) {
+  const c = condition.toLowerCase();
+  if (c === "smooth") return `<span class="badge badge-smooth">Smooth</span>`;
+  if (c === "moderate") return `<span class="badge badge-moderate">Moderate</span>`;
+  if (c === "heavy") return `<span class="badge badge-heavy">Heavy</span>`;
+  if (c === "jam") return `<span class="badge badge-jam">Jam</span>`;
+  return `<span class="badge badge-jam">Unknown</span>`;
 }
 
 async function loadTraffic() {
   if (paused) return;
 
-  const term = (filterRoad?.value || "").toLowerCase();
-  const cond = filterCond?.value;
-
   try {
     const url = new URL("http://localhost:5000/api/traffic");
+    const term = filterRoad.value.trim();
+
     if (term) url.searchParams.append("q", term);
-    if (cond) url.searchParams.append("condition", cond);
 
-    const response = await fetch(url.toString());
-    if (!response.ok) throw new Error("Failed to fetch traffic data.");
-    const apiResponse = await response.json();
-    const filtered = apiResponse.data || [];
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Failed to load traffic data.");
 
-    if (window.updatetrafficMap) {
-      window.updatetrafficMap(filtered);
+    const api = await res.json();
+    let data = api.data || [];
+
+    // Convert speed → condition
+    data = data.map(d => {
+      const speed = d.SpeedBand ?? 0;
+      const cond = mapConditionFromSpeed(speed);
+
+      return {
+        ...d,
+        speed,
+        condition: cond
+      };
+    });
+
+    if (filterCond.value) {
+      const selected = filterCond.value.toLowerCase();
+      data = data.filter(item => item.condition.toLowerCase() === selected);
     }
 
-  } catch (e) {
-    ui.showStatus(trafficOut, { error: e.message });
+    renderTrafficList(data);
+
+  } catch (err) {
+    listOut.innerHTML = `<p style="color:red;">${err.message}</p>`;
   }
+}
+
+function renderTrafficList(data) {
+  if (data.length === 0) {
+    listOut.innerHTML = `<p class="muted">No traffic results found.</p>`;
+    return;
+  }
+
+  listOut.innerHTML = data
+    .map(
+      (item) => `
+        <div class="traffic-card">
+          <div>
+            <h3>${item.road}</h3>
+            <div class="traffic-meta">
+              <b>Area:</b> ${item.area}<br>
+              <b>Speed:</b> ${item.speed} km/h
+            </div>
+          </div>
+
+          <div>${getBadge(item.condition)}</div>
+        </div>
+      `
+    )
+    .join("");
 }
 
 btnRefresh?.addEventListener("click", loadTraffic);
@@ -52,113 +97,3 @@ filterCond?.addEventListener("change", loadTraffic);
 
 loadTraffic();
 setInterval(() => { if (!paused) loadTraffic(); }, 30000);
-
-document.addEventListener("DOMContentLoaded", () => {
-  const mapContainer = document.getElementById("traffic-map");
-  if (!mapContainer) return;
-
-  mapContainer.textContent = "";
-
-  const map = L.map(mapContainer, {
-    center: [1.3521, 103.8198],
-    zoom: 12,
-    maxZoom: 19,
-    minZoom: 10,
-    zoomControl: true
-  });
-
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors",
-    maxZoom: 19,
-    minZoom: 10,
-    tileSize: 256,
-    keepBuffer: 2,
-    updateWhenZooming: false,
-    updateWhenIdle: true,
-    crossOrigin: true
-  }).addTo(map);
-
-  function refreshMapSize() {
-    setTimeout(() => {
-      map.invalidateSize();
-    }, 100);
-  }
-
-  window.addEventListener("load", refreshMapSize);
-  setTimeout(refreshMapSize, 500);
-  setTimeout(refreshMapSize, 1000);
-  window.addEventListener("resize", refreshMapSize);
-
-  let trafficLayers =[];
-
-  window.updatetrafficMap = function (data) {
-    trafficLayers.forEach(layer => map.removeLayer(layer));
-    trafficLayers = [];
-
-    const bounds = [];
-
-    data.forEach((item) => {
-      if (item.startLat && item.startLon && item.endLat && item.endLon) {
-
-        const startLat = parseFloat(item.startLat);
-        const startLon = parseFloat(item.startLon);
-        const endLat = parseFloat(item.endLat);
-        const endLon = parseFloat(item.endLon);
-
-        if (!isNaN(startLat) && !isNaN(startLon) && !isNaN(endLat) && !isNaN(endLon)) {
-          const color = getTrafficColor(item.condition);
-          const polyline = L.polyline(
-            [
-              [startLat, startLon],
-              [endLat, endLon]
-            ],
-            {
-              color: color,
-              weight: 4,
-              opacity: 0.8,
-              lineJoin: 'round',
-              className: 'traffic-line'
-            }
-          ).addTo(map);
-
-          polyline.bindPopup(`
-            <div style="font-family: sans-serif;">
-              <b style="font-size: 14px;">${item.road}</b><br/>
-              <b>Area:</b> ${item.area}<br/>
-              <b>Speed:</b> ${item.speed} km/h<br/>
-              <b>Condition:</b> <span style="color: #FF0000;">${item.condition}</span><br/>
-              <small style="color: #666;">Updated: ${new Date(item.updated_at).toLocaleString('en-SG')}</small>
-            </div>
-          `);
-          trafficLayers.push(polyline);
-          bounds.push([startLat, startLon]);
-          bounds.push([endLat, endLon]);
-        } 
-      }  
-    });
-
-    if (bounds.length > 0) {
-      const latLngBounds = L.latLngBounds(bounds);
-      map.fitBounds(latLngBounds, { padding: [50, 50], maxZoom: 14 });
-      setTimeout(() => {
-        map.invalidateSize();
-      }, 100);
-    }
-    console.log(`Map updated with ${trafficLayers.length} traffic lines.`);
-  };
-
-  // Add legend
-  const legend = L.control({ position: 'bottomright' });
-  legend.onAdd = function () {
-    const div = L.DomUtil.create('div', 'info legend');
-    div.innerHTML = `
-      <h4>Traffic Legend</h4>
-      <div><span style="background: #00FF00; display: inline-block; width: 20px; height: 3px; margin-right: 5px;"></span>Smooth</div>
-      <div><span style="background: #FFD700; display: inline-block; width: 20px; height: 3px; margin-right: 5px;"></span>Moderate</div>
-      <div><span style="background: #FF6B00; display: inline-block; width: 20px; height: 3px; margin-right: 5px;"></span>Heavy</div>
-      <div><span style="background: #FF0000; display: inline-block; width: 20px; height: 3px; margin-right: 5px;"></span>Jam</div>
-    `;
-    return div;
-  };
-  legend.addTo(map);
-});

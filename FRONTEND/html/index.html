@@ -1,26 +1,181 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Smart City Public Dashboard</title>
-  <link rel="stylesheet" href="../css/style.css">
-  <script src="../js/main.js" defer></script>
+
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --card: #121a22;
+      --muted: #6b7a90;
+      --text: #e6edf3;
+      --accent: #00c2ff;
+      --danger: #ff6b6b;
+      --border: #1f2a36;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    nav {
+      display: flex;
+      gap: 16px;
+      background: #121a22;
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      position: sticky;
+      top: 0;
+    }
+
+    nav a {
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 6px;
+      transition: background 0.2s;
+    }
+
+    nav a:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    nav a.active {
+      background: var(--accent);
+      color: #000;
+    }
+
+    nav a#logout-btn {
+      background: var(--danger);
+      color: #fff;
+    }
+
+    nav a#logout-btn:hover {
+      background: #ff4c4c;
+    }
+
+    h1 {
+      margin: 20px 0 12px;
+      font-size: 26px;
+      color: var(--accent);
+    }
+
+    h2 {
+      margin: 12px 0;
+      font-size: 20px;
+      color: var(--accent);
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .grid-2 {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    @media (max-width: 900px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    input[type="text"] {
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #0d141a;
+      color: var(--text);
+    }
+
+    button {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 6px;
+      background: var(--accent);
+      color: #ffffff;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    button:hover {
+      opacity: 0.85;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 24px;
+      padding: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    canvas {
+      background: #0d141a;
+      border-radius: 8px;
+      padding: 8px;
+    }
+  </style>
+
+  <script>
+    const role = localStorage.getItem("smartcity_role");
+    console.log("ROLE CHECK:", role);
+
+    if (role !== "admin") {
+      window.location.replace("./login.html");
+    }
+  </script>
   <script src="../js/ui.js" defer></script>
   <script src="../js/index.js" defer></script>
 </head>
+
 <body>
-
-<nav>
-  <a href="index.html" class="active">Home</a>
-  <a href="overview.html">Overview</a>
-  <a href="traffic.html">Traffic</a>
-  <a href="transport.html">Transport</a>
-  <a href="weather.html">Weather</a>
-  <a href="accidents.html">Accidents</a>
-  <a href="#" id="logout-btn" style="margin-left:auto;">Logout</a>
-</nav>
-
+  <nav>
+    <a href="index.html" class="active">Home</a>
+    <a href="traffic.html">Traffic</a>
+    <a href="transport.html">Transport</a>
+    <a href="weather.html">Weather</a>
+    <a href="accidents.html">Accidents</a>
+    <a href="#" id="logout-btn" style="margin-left:auto;">Logout</a>
+  </nav>
 
   <div class="container">
     <h1>Welcome to Smart City Dashboard</h1>
@@ -51,5 +206,13 @@
     <p>&copy; 2025 Smart City Project</p>
   </footer>
 
+  <script>
+    document.getElementById("logout-btn").addEventListener("click", () => {
+      localStorage.removeItem("smartcity_role");
+      window.location.href = "login.html";
+    });
+  </script>
+
 </body>
+
 </html>

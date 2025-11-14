@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Smart City Public Dashboard</title>
-  <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -14,20 +14,160 @@
   <script src="../js/weather.js" defer></script>
 
   <style>
+    :root {
+      --bg: #0b0f14;
+      --card: #121a22;
+      --muted: #6b7a90;
+      --text: #e6edf3;
+      --accent: #00c2ff;
+      --danger: #ff6b6b;
+      --border: #1f2a36;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.5;
+    }
+
+    nav {
+      display: flex;
+      gap: 16px;
+      background: #121a22;
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    nav a {
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 6px;
+      transition: background 0.2s;
+    }
+
+    nav a:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    nav a.active {
+      background: var(--accent);
+      color: #000;
+    }
+
+    nav a#logout-btn {
+      background: var(--danger);
+      color: #fff;
+      margin-left: auto;
+    }
+
+    nav a#logout-btn:hover {
+      background: #ff4c4c;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    h2 {
+      margin-bottom: 12px;
+      color: var(--accent);
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+      margin-bottom: 20px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .actions button {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      background: var(--accent);
+      color: white;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      font-weight: 600;
+    }
+
+    .actions button:hover {
+      opacity: 0.85;
+    }
+
+    .weather-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 15px;
+    }
+
     #weather-map {
       margin-top: 20px;
       height: 500px;
       border-radius: 12px;
       overflow: hidden;
     }
+
+    .leaflet-container {
+      background: #0b0f14;
+      border-radius: 12px;
+    }
+
+    .legend {
+      padding: 10px 15px;
+      background: rgba(20, 20, 20, 0.85);
+      color: white;
+      border-radius: 8px;
+      font-size: 13px;
+      line-height: 1.5em;
+    }
+
+    .legend span {
+      display: inline-block;
+      width: 15px;
+      height: 15px;
+      margin-right: 6px;
+      border-radius: 3px;
+    }
+
+    .legend h4 {
+      margin: 0 0 6px;
+      font-size: 14px;
+      color: #ffb84d;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 24px;
+      padding: 16px;
+      border-top: 1px solid var(--border);
+    }
   </style>
 </head>
 
 <body>
-
   <nav>
     <a href="index.html">Home</a>
-    <a href="overview.html">Overview</a>
     <a href="traffic.html">Traffic</a>
     <a href="transport.html">Transport</a>
     <a href="weather.html" class="active">Weather</a>
@@ -60,4 +200,5 @@
   </footer>
 
 </body>
+
 </html>

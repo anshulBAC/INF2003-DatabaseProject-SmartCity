@@ -17,7 +17,7 @@ import requests
 DB_CONFIG = {
     'host': 'localhost',
     'user': 'root',
-    'password': 'zixin',  
+    'password': '',  # Update with your DB password
     'database': 'smart_city'
 }
 
