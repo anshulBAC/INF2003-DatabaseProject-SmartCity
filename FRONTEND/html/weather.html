@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart City Public Dashboard</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script src="../js/main.js" defer></script>
+  <script src="../js/ui.js" defer></script>
+  <script src="../js/index.js" defer></script>
+  <script src="../js/weather.js" defer></script>
+
+  <style>
+    #weather-map {
+      margin-top: 20px;
+      height: 500px;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+  </style>
+</head>
+
+<body>
+
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="overview.html">Overview</a>
+    <a href="traffic.html">Traffic</a>
+    <a href="transport.html">Transport</a>
+    <a href="weather.html" class="active">Weather</a>
+    <a href="accidents.html">Accidents</a>
+    <a href="#" id="logout-btn" style="margin-left:auto;">Logout</a>
+  </nav>
+
+  <div class="container">
+
+    <div id="weather-card" class="card">
+      <div class="card-header">
+        <h2>Weather</h2>
+        <div class="actions">
+          <button id="btn-refresh-weather" class="btn btn-sm">Refresh</button>
+          <button id="btn-toggle-forecast" class="btn btn-sm">Forecast</button>
+        </div>
+      </div>
+
+      <div id="current-weather"></div>
+      <div id="forecast-weather" style="display:none; margin-top:15px;"></div>
+      <div id="rainfall-info" style="margin-top:15px;"></div>
+    </div>
+
+    <div id="weather-map"></div>
+
+  </div>
+
+  <footer class="footer">
+    <p>&copy; 2025 Smart City Project</p>
+  </footer>
+
+</body>
+</html>
