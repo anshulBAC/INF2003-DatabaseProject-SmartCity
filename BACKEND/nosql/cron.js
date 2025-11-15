@@ -1,26 +1,49 @@
 const cron = require('node-cron');
-const { updateTraffic, updateCarparks, updateRoadworks, updateTrafficIncidents } = require('./lta');
-const { fetchCurrentWeather, fetchForecast, updateRainfall } = require('./weather');
+const {
+  updateTraffic,
+  updateRoadworks,
+  updateTrafficIncidents,
+  updateVMSEMAS,
+  updateTrainServiceAlerts,
+} = require('./lta');
 
-console.log("Smart City Cron started (SG Time: Nov 11, 2025)");
+console.log("Smart City NoSQL Cache Manager");
 
 cron.schedule('*/2 * * * *', async () => {
   try {
-    console.log('=== LTA Update ===');
-    await Promise.all([updateTraffic(), updateCarparks(), updateRoadworks(), updateTrafficIncidents()]);
+    console.log('=== Caching: VMS/EMAS & Incidents (2 min) ===');
+    await Promise.all([
+      updateVMSEMAS(),
+      updateTrafficIncidents()
+    ]);
   } catch (e) {
-    console.error('LTA update failed:', e.message);
+    console.error('Cache update failed:', e.message);
   }
 });
 
-cron.schedule('*/15 * * * *', async () => {
+cron.schedule('*/5 * * * *', async () => {
   try {
-    console.log('=== Weather Update ===');
-    await fetchCurrentWeather();
-    await fetchForecast();
+    console.log('=== Caching: Speed Bands & Train Alerts (5 min) ===');
+    await Promise.all([
+      updateTraffic(),
+      updateTrainServiceAlerts()
+    ]);
   } catch (e) {
-    console.error('Weather update failed:', e.message);
+    console.error('Cache update failed:', e.message);
   }
 });
 
-cron.schedule('*/5 * * * *', updateRainfall);
+cron.schedule('0 2 * * *', async () => {
+  try {
+    console.log('=== Caching: Road Works (Daily) ===');
+    await updateRoadworks();
+  } catch (e) {
+    console.error('Cache update failed:', e.message);
+  }
+});
+
+console.log('NoSQL cache refresh schedule:');
+console.log('- VMS/EMAS & Incidents: Every 2 minutes');
+console.log('- Speed Bands & Train Alerts: Every 5 minutes');
+console.log('- Road Works: Daily at 2 AM');
+console.log('- Bus Arrival: On-demand (cache 30 sec)');
