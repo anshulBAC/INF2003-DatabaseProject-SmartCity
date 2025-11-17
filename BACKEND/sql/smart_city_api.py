@@ -1,4 +1,4 @@
-    """
+"""
 Smart City Framework - FastAPI Backend
 RESTful API for Singapore Transportation Infrastructure Data
 """
@@ -17,7 +17,7 @@ import requests
 DB_CONFIG = {
     'host': 'localhost',
     'user': 'root',
-    'password': '',  # Update with your password
+    'password': '',  # Update with your DB password
     'database': 'smart_city'
 }
 

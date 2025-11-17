@@ -1,34 +1,29 @@
-// ==============================
-// Smart City Public Web - login.js
-// Handles Login Page
-// ==============================
-
-const form = document.querySelector("#login-form");
+const form = document.querySelector("#role-form");
 const msg = document.querySelector("#login-msg");
 
 form.addEventListener("submit", (e) => {
   e.preventDefault();
 
-  const user = document.querySelector("#username").value.trim();
-  const pass = document.querySelector("#password").value.trim();
+  const role = document.querySelector("#role").value;
 
-  // 🔐 Mock authentication (replace later with backend fetch)
-  const demoUser = "citizen";
-  const demoPass = "smartcity123";
-
-  if (user === demoUser && pass === demoPass) {
-    msg.style.color = "lightgreen";
-    msg.textContent = "✅ Login successful! Redirecting...";
-
-    // Save login state
-    localStorage.setItem("smartcity_logged_in", "true");
-
-    // Redirect to homepage after 1.5s
-    setTimeout(() => {
-      window.location.href = "index.html";
-    }, 1500);
-  } else {
+  if (!role) {
     msg.style.color = "red";
-    msg.textContent = "❌ Invalid username or password.";
+    msg.textContent = "Please choose a role.";
+    return;
   }
+
+  // Set both authentication flags
+  localStorage.setItem("smartcity_role", role);
+  localStorage.setItem("smartcity_logged_in", "true");
+
+  msg.style.color = "lightgreen";
+  msg.textContent = `${role.toUpperCase()} selected. Redirecting...`;
+
+  setTimeout(() => {
+    if (role === "user") {
+      window.location.replace("dashboard_with_routing.html");
+    } else if (role === "admin") {
+      window.location.replace("index.html"); 
+    }
+  }, 1200);
 });
