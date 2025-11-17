@@ -391,20 +391,11 @@
 </head>
 
 <body>
-    <script>
-        // Allow ONLY USER role
-        const role = localStorage.getItem("smartcity_role");
-        if (role !== "user") {
-            window.location.href = "login.html";
-        }
-    </script>
     <div class="header">
         <div class="header-left">
             <h1>🏙️ Smart City Dashboard</h1>
             <p>Singapore Transportation Infrastructure & Route Planning</p>
         </div>
-
-        <a href="login.html" id="logout-btn" class="logout-btn">Logout</a>
     </div>
 
 
@@ -1023,11 +1014,6 @@
             } else {
                 map.removeLayer(layers.trafficCameras);
             }
-        });
-
-        document.getElementById("logout-btn").addEventListener("click", () => {
-            localStorage.removeItem("smartcity_role");
-            window.location.href = "login.html";
         });
 
         // Load data on page load
