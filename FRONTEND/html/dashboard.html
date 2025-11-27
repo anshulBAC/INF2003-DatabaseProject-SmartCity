@@ -1,57 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart City Dashboard - Singapore Transportation</title>
-    
+
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <!-- Leaflet Routing Machine CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
-    
+
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #f5f5f5;
         }
-        
+
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
-        
+
         .header h1 {
             font-size: 28px;
             margin-bottom: 5px;
         }
-        
+
         .header p {
             opacity: 0.9;
             font-size: 14px;
         }
-        
+
         .container {
             display: flex;
             height: calc(100vh - 100px);
         }
-        
+
         .sidebar {
             width: 350px;
             background: white;
             padding: 20px;
             overflow-y: auto;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
         }
-        
+
         .sidebar h2 {
             font-size: 18px;
             margin-bottom: 15px;
@@ -60,13 +65,13 @@
             align-items: center;
             gap: 8px;
         }
-        
+
         .tab-buttons {
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
         }
-        
+
         .tab-button {
             flex: 1;
             padding: 10px;
@@ -79,32 +84,32 @@
             transition: all 0.2s;
             text-align: center;
         }
-        
+
         .tab-button.active {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-color: #667eea;
         }
-        
+
         .tab-button:hover:not(.active) {
             background: #e9ecef;
         }
-        
+
         .tab-content {
             display: none;
         }
-        
+
         .tab-content.active {
             display: block;
         }
-        
+
         .stats-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
             margin-bottom: 20px;
         }
-        
+
         .stat-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -112,22 +117,22 @@
             border-radius: 8px;
             text-align: center;
         }
-        
+
         .stat-card .number {
             font-size: 24px;
             font-weight: bold;
             margin-bottom: 5px;
         }
-        
+
         .stat-card .label {
             font-size: 12px;
             opacity: 0.9;
         }
-        
+
         .control-group {
             margin-bottom: 20px;
         }
-        
+
         .control-group label {
             display: block;
             margin-bottom: 8px;
@@ -135,13 +140,13 @@
             color: #555;
             font-size: 14px;
         }
-        
+
         .checkbox-group {
             display: flex;
             flex-direction: column;
             gap: 10px;
         }
-        
+
         .checkbox-item {
             display: flex;
             align-items: center;
@@ -151,35 +156,35 @@
             cursor: pointer;
             transition: all 0.2s;
         }
-        
+
         .checkbox-item:hover {
             background: #e9ecef;
         }
-        
+
         .checkbox-item input[type="checkbox"] {
             margin-right: 10px;
             cursor: pointer;
             width: 18px;
             height: 18px;
         }
-        
+
         .checkbox-item label {
             margin: 0;
             cursor: pointer;
             font-weight: normal;
             flex: 1;
         }
-        
+
         .checkbox-item .count {
             color: #667eea;
             font-weight: bold;
             font-size: 12px;
         }
-        
+
         .route-input-group {
             margin-bottom: 15px;
         }
-        
+
         .route-input-group input {
             width: 100%;
             padding: 12px;
@@ -188,19 +193,19 @@
             font-size: 14px;
             transition: border-color 0.2s;
         }
-        
+
         .route-input-group input:focus {
             outline: none;
             border-color: #667eea;
         }
-        
+
         .route-mode-selector {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
             gap: 8px;
             margin-bottom: 15px;
         }
-        
+
         .mode-button {
             padding: 10px;
             background: #f8f9fa;
@@ -211,26 +216,26 @@
             text-align: center;
             transition: all 0.2s;
         }
-        
+
         .mode-button.active {
             background: #667eea;
             color: white;
             border-color: #667eea;
         }
-        
+
         .route-info {
             background: #f8f9fa;
             padding: 15px;
             border-radius: 8px;
             margin-top: 15px;
         }
-        
+
         .route-info h4 {
             font-size: 14px;
             margin-bottom: 10px;
             color: #333;
         }
-        
+
         .route-detail {
             display: flex;
             justify-content: space-between;
@@ -238,17 +243,17 @@
             border-bottom: 1px solid #e9ecef;
             font-size: 13px;
         }
-        
+
         .route-detail:last-child {
             border-bottom: none;
         }
-        
+
         .nearby-stops {
             max-height: 200px;
             overflow-y: auto;
             margin-top: 10px;
         }
-        
+
         .stop-item {
             padding: 8px;
             background: white;
@@ -258,46 +263,46 @@
             cursor: pointer;
             transition: background 0.2s;
         }
-        
+
         .stop-item:hover {
             background: #e9ecef;
         }
-        
+
         #map {
             flex: 1;
             position: relative;
         }
-        
+
         .legend {
             background: white;
             padding: 15px;
             border-radius: 8px;
             margin-top: 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
-        
+
         .legend h3 {
             font-size: 14px;
             margin-bottom: 10px;
             color: #333;
         }
-        
+
         .legend-item {
             display: flex;
             align-items: center;
             margin-bottom: 8px;
             font-size: 13px;
         }
-        
+
         .legend-color {
             width: 20px;
             height: 20px;
             border-radius: 50%;
             margin-right: 10px;
             border: 2px solid white;
-            box-shadow: 0 0 3px rgba(0,0,0,0.3);
+            box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
         }
-        
+
         .loading {
             position: absolute;
             top: 50%;
@@ -306,10 +311,10 @@
             background: white;
             padding: 20px 40px;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
             z-index: 1000;
         }
-        
+
         .loading-spinner {
             border: 3px solid #f3f3f3;
             border-top: 3px solid #667eea;
@@ -319,12 +324,17 @@
             animation: spin 1s linear infinite;
             margin: 0 auto 10px;
         }
-        
+
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
-        
+
         .error {
             background: #fee;
             color: #c00;
@@ -333,7 +343,7 @@
             margin: 10px 0;
             font-size: 13px;
         }
-        
+
         button {
             width: 100%;
             padding: 12px;
@@ -346,28 +356,49 @@
             font-weight: 600;
             transition: transform 0.2s;
         }
-        
+
         button:hover {
             transform: translateY(-2px);
         }
-        
+
         button:active {
             transform: translateY(0);
         }
-        
+
         button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
             transform: none;
         }
+
+        /* Logout Button */
+        .logout-btn {
+            margin-left: auto;
+            float: right;
+            background: #ff6b6b;
+            color: #fff;
+            padding: 8px 14px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: #ff4c4c;
+        }
     </style>
 </head>
+
 <body>
     <div class="header">
-        <h1>🏙️ Smart City Dashboard</h1>
-        <p>Singapore Transportation Infrastructure & Route Planning</p>
+        <div class="header-left">
+            <h1>🏙️ Smart City Dashboard</h1>
+            <p>Singapore Transportation Infrastructure & Route Planning</p>
+        </div>
     </div>
-    
+
+
     <div class="container">
         <div class="sidebar">
             <!-- Tab Buttons -->
@@ -375,7 +406,7 @@
                 <div class="tab-button active" onclick="switchTab('layers')">🗺️ Layers</div>
                 <div class="tab-button" onclick="switchTab('route')">🧭 Routes</div>
             </div>
-            
+
             <!-- Layers Tab -->
             <div id="layers-tab" class="tab-content active">
                 <h2>📊 Statistics</h2>
@@ -405,7 +436,7 @@
                         <div class="label">Bus Routes</div>
                     </div>
                 </div>
-                
+
                 <div class="control-group">
                     <label>Display Layers</label>
                     <div class="checkbox-group">
@@ -436,9 +467,9 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <button onclick="refreshData()">🔄 Refresh Data</button>
-                
+
                 <div class="legend">
                     <h3>Legend</h3>
                     <div class="legend-item">
@@ -463,21 +494,21 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Route Planning Tab -->
             <div id="route-tab" class="tab-content">
                 <h2>🧭 Route Planner</h2>
-                
+
                 <div class="route-input-group">
                     <label>From (Click map or enter location)</label>
                     <input type="text" id="route-from" placeholder="Starting point...">
                 </div>
-                
+
                 <div class="route-input-group">
                     <label>To (Click map or enter location)</label>
                     <input type="text" id="route-to" placeholder="Destination...">
                 </div>
-                
+
                 <div class="control-group">
                     <label>Travel Mode</label>
                     <div class="route-mode-selector">
@@ -486,15 +517,15 @@
                         <div class="mode-button" onclick="setRouteMode('transit')">🚌 Transit</div>
                     </div>
                 </div>
-                
+
                 <button onclick="planRoute()" id="plan-route-btn">Find Route</button>
                 <button onclick="clearRoute()" style="margin-top: 10px; background: #dc3545;">Clear Route</button>
-                
+
                 <div id="route-info" class="route-info" style="display: none;">
                     <h4>Route Information</h4>
                     <div id="route-details"></div>
                 </div>
-                
+
                 <div id="nearby-stops-container" style="display: none;">
                     <div class="control-group">
                         <label>Nearby Bus Stops</label>
@@ -502,10 +533,10 @@
                     </div>
                 </div>
             </div>
-            
+
             <div id="error-message"></div>
         </div>
-        
+
         <div id="map">
             <div class="loading" id="loading">
                 <div class="loading-spinner"></div>
@@ -513,25 +544,25 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- Leaflet Routing Machine -->
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
-    
+
     <script>
         // Configuration
         const API_BASE_URL = 'http://localhost:8000';
-        
+
         // Initialize map centered on Singapore
         const map = L.map('map').setView([1.3521, 103.8198], 12);
-        
+
         // Add OpenStreetMap tile layer
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors',
             maxZoom: 19
         }).addTo(map);
-        
+
         // Layer groups for different data types
         const layers = {
             busStops: L.layerGroup().addTo(map),
@@ -540,13 +571,13 @@
             taxiStops: L.layerGroup(),
             trafficCameras: L.layerGroup().addTo(map)
         };
-        
+
         // Route planning variables
         let routingControl = null;
         let routeMode = 'driving';
         let routeMarkers = { from: null, to: null };
         let allBusStops = [];
-        
+
         // Custom marker icons
         const icons = {
             busStop: L.icon({
@@ -586,12 +617,12 @@
                 popupAnchor: [0, -45]
             })
         };
-        
+
         // Tab switching
         function switchTab(tab) {
             document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
+
             if (tab === 'layers') {
                 document.querySelector('.tab-button:first-child').classList.add('active');
                 document.getElementById('layers-tab').classList.add('active');
@@ -600,26 +631,26 @@
                 document.getElementById('route-tab').classList.add('active');
             }
         }
-        
+
         // Route planning functions
         function setRouteMode(mode) {
             routeMode = mode;
             document.querySelectorAll('.mode-button').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
         }
-        
+
         // Map click for route selection
         let selectingRoutePoint = null;
-        
-        map.on('click', function(e) {
+
+        map.on('click', function (e) {
             if (document.getElementById('route-tab').classList.contains('active')) {
                 const lat = e.latlng.lat.toFixed(6);
                 const lng = e.latlng.lng.toFixed(6);
-                
+
                 // Determine which input to fill
                 const fromInput = document.getElementById('route-from');
                 const toInput = document.getElementById('route-to');
-                
+
                 if (!fromInput.value) {
                     fromInput.value = `${lat}, ${lng}`;
                     if (routeMarkers.from) map.removeLayer(routeMarkers.from);
@@ -628,7 +659,7 @@
                 } else if (!toInput.value) {
                     toInput.value = `${lat}, ${lng}`;
                     if (routeMarkers.to) map.removeLayer(routeMarkers.to);
-                    routeMarkers.to = L.marker([lat, lng], { 
+                    routeMarkers.to = L.marker([lat, lng], {
                         icon: L.icon({
                             iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iNDUiIHZpZXdCb3g9IjAgMCAzMCA0NSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTUgMEMxMC4wMjk0IDAgNiA0LjAyOTQzIDYgOUM2IDEzLjk3MDYgMTUgMjcgMTUgMjdDMTUgMjcgMjQgMTMuOTcwNiAyNCA5QzI0IDQuMDI5NDMgMTkuOTcwNiAwIDE1IDBaIiBmaWxsPSIjMDBGRjAwIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiLz48Y2lyY2xlIGN4PSIxNSIgY3k9IjkiIHI9IjUiIGZpbGw9IndoaXRlIi8+PC9zdmc+',
                             iconSize: [30, 45],
@@ -636,36 +667,36 @@
                         })
                     }).addTo(map);
                     routeMarkers.to.bindPopup('Destination').openPopup();
-                    
+
                     // Find nearby stops
                     findNearbyStops(lat, lng);
                 }
             }
         });
-        
+
         function planRoute() {
             const fromValue = document.getElementById('route-from').value;
             const toValue = document.getElementById('route-to').value;
-            
+
             if (!fromValue || !toValue) {
                 alert('Please select both starting point and destination');
                 return;
             }
-            
+
             // Parse coordinates
             const from = fromValue.split(',').map(v => parseFloat(v.trim()));
             const to = toValue.split(',').map(v => parseFloat(v.trim()));
-            
+
             if (from.length !== 2 || to.length !== 2) {
                 alert('Invalid coordinates format');
                 return;
             }
-            
+
             // Clear existing route
             if (routingControl) {
                 map.removeControl(routingControl);
             }
-            
+
             // Create routing control
             routingControl = L.Routing.control({
                 waypoints: [
@@ -676,24 +707,24 @@
                 showAlternatives: true,
                 altLineOptions: {
                     styles: [
-                        {color: 'black', opacity: 0.15, weight: 9},
-                        {color: 'white', opacity: 0.8, weight: 6},
-                        {color: 'blue', opacity: 0.5, weight: 2}
+                        { color: 'black', opacity: 0.15, weight: 9 },
+                        { color: 'white', opacity: 0.8, weight: 6 },
+                        { color: 'blue', opacity: 0.5, weight: 2 }
                     ]
                 },
                 lineOptions: {
-                    styles: [{color: '#667eea', weight: 5}]
+                    styles: [{ color: '#667eea', weight: 5 }]
                 }
             }).addTo(map);
-            
+
             // Show route info
-            routingControl.on('routesfound', function(e) {
+            routingControl.on('routesfound', function (e) {
                 const routes = e.routes;
                 const summary = routes[0].summary;
-                
+
                 const distance = (summary.totalDistance / 1000).toFixed(2);
                 const duration = Math.round(summary.totalTime / 60);
-                
+
                 document.getElementById('route-info').style.display = 'block';
                 document.getElementById('route-details').innerHTML = `
                     <div class="route-detail">
@@ -711,29 +742,29 @@
                 `;
             });
         }
-        
+
         function clearRoute() {
             if (routingControl) {
                 map.removeControl(routingControl);
                 routingControl = null;
             }
-            
+
             if (routeMarkers.from) {
                 map.removeLayer(routeMarkers.from);
                 routeMarkers.from = null;
             }
-            
+
             if (routeMarkers.to) {
                 map.removeLayer(routeMarkers.to);
                 routeMarkers.to = null;
             }
-            
+
             document.getElementById('route-from').value = '';
             document.getElementById('route-to').value = '';
             document.getElementById('route-info').style.display = 'none';
             document.getElementById('nearby-stops-container').style.display = 'none';
         }
-        
+
         function findNearbyStops(lat, lng) {
             const nearby = allBusStops
                 .map(stop => {
@@ -742,7 +773,7 @@
                 })
                 .sort((a, b) => a.distance - b.distance)
                 .slice(0, 5);
-            
+
             const container = document.getElementById('nearby-stops');
             container.innerHTML = nearby.map(stop => `
                 <div class="stop-item" onclick="focusOnStop(${stop.Latitude}, ${stop.Longitude})">
@@ -750,29 +781,29 @@
                     <small>${stop.RoadName} - ${stop.distance.toFixed(0)}m away</small>
                 </div>
             `).join('');
-            
+
             document.getElementById('nearby-stops-container').style.display = 'block';
         }
-        
+
         function calculateDistance(lat1, lon1, lat2, lon2) {
             const R = 6371e3; // Earth radius in meters
             const φ1 = lat1 * Math.PI / 180;
             const φ2 = lat2 * Math.PI / 180;
             const Δφ = (lat2 - lat1) * Math.PI / 180;
             const Δλ = (lon2 - lon1) * Math.PI / 180;
-            
-            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-                    Math.cos(φ1) * Math.cos(φ2) *
-                    Math.sin(Δλ/2) * Math.sin(Δλ/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            
+
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
             return R * c;
         }
-        
+
         function focusOnStop(lat, lng) {
             map.setView([lat, lng], 17);
         }
-        
+
         // Fetch and display data
         async function fetchData(endpoint, limit = 1000) {
             try {
@@ -785,12 +816,12 @@
                 return [];
             }
         }
-        
+
         async function loadBusStops() {
             const data = await fetchData('/api/bus-stops', 5000);
             layers.busStops.clearLayers();
             allBusStops = data;
-            
+
             data.forEach(stop => {
                 const marker = L.marker([stop.Latitude, stop.Longitude], { icon: icons.busStop })
                     .bindPopup(`
@@ -800,15 +831,15 @@
                     `);
                 layers.busStops.addLayer(marker);
             });
-            
+
             document.getElementById('bus-stops-count').textContent = data.length;
             return data.length;
         }
-        
+
         async function loadTrainStations() {
             const data = await fetchData('/api/train-stations');
             layers.trainStations.clearLayers();
-            
+
             data.forEach(station => {
                 const marker = L.marker([station.Latitude, station.Longitude], { icon: icons.trainStation })
                     .bindPopup(`
@@ -818,15 +849,15 @@
                     `);
                 layers.trainStations.addLayer(marker);
             });
-            
+
             document.getElementById('train-stations-count').textContent = data.length;
             return data.length;
         }
-        
+
         async function loadCarparks() {
             const data = await fetchData('/api/carparks');
             layers.carparks.clearLayers();
-            
+
             data.forEach(carpark => {
                 const coords = carpark.Location.split(' ');
                 if (coords.length === 2) {
@@ -839,29 +870,29 @@
                     layers.carparks.addLayer(marker);
                 }
             });
-            
+
             document.getElementById('carparks-count').textContent = data.length;
             return data.length;
         }
-        
+
         async function loadTaxiStops() {
             const data = await fetchData('/api/taxi-stops');
             layers.taxiStops.clearLayers();
-            
+
             data.forEach(stop => {
                 const marker = L.marker([stop.Latitude, stop.Longitude], { icon: icons.taxiStop })
                     .bindPopup(`<b>Taxi Stand</b><br>Code: ${stop.TaxiCode}`);
                 layers.taxiStops.addLayer(marker);
             });
-            
+
             document.getElementById('taxi-stops-count').textContent = data.length;
             return data.length;
         }
-        
+
         async function loadTrafficCameras() {
             const data = await fetchData('/api/traffic-cameras/live');
             layers.trafficCameras.clearLayers();
-            
+
             data.forEach(camera => {
                 const marker = L.marker([camera.Latitude, camera.Longitude], { icon: icons.trafficCamera })
                     .bindPopup(`
@@ -873,15 +904,15 @@
                     `);
                 layers.trafficCameras.addLayer(marker);
             });
-            
+
             document.getElementById('traffic-cameras-count').textContent = data.length;
             return data.length;
         }
-        
+
         async function loadStatistics() {
             try {
                 const stats = await fetchData('/api/stats');
-                
+
                 const statsGrid = document.getElementById('stats-grid');
                 statsGrid.innerHTML = `
                     <div class="stat-card">
@@ -913,16 +944,16 @@
                 console.error('Error loading statistics:', error);
             }
         }
-        
+
         function showError(message) {
             const errorDiv = document.getElementById('error-message');
             errorDiv.innerHTML = `<div class="error">${message}</div>`;
             setTimeout(() => errorDiv.innerHTML = '', 5000);
         }
-        
+
         async function loadAllData() {
             document.getElementById('loading').style.display = 'block';
-            
+
             try {
                 await loadStatistics();
                 await Promise.all([
@@ -939,11 +970,11 @@
                 document.getElementById('loading').style.display = 'none';
             }
         }
-        
+
         function refreshData() {
             loadAllData();
         }
-        
+
         // Toggle layers
         document.getElementById('show-bus-stops').addEventListener('change', (e) => {
             if (e.target.checked) {
@@ -952,7 +983,7 @@
                 map.removeLayer(layers.busStops);
             }
         });
-        
+
         document.getElementById('show-train-stations').addEventListener('change', (e) => {
             if (e.target.checked) {
                 map.addLayer(layers.trainStations);
@@ -960,7 +991,7 @@
                 map.removeLayer(layers.trainStations);
             }
         });
-        
+
         document.getElementById('show-carparks').addEventListener('change', (e) => {
             if (e.target.checked) {
                 map.addLayer(layers.carparks);
@@ -968,7 +999,7 @@
                 map.removeLayer(layers.carparks);
             }
         });
-        
+
         document.getElementById('show-taxi-stops').addEventListener('change', (e) => {
             if (e.target.checked) {
                 map.addLayer(layers.taxiStops);
@@ -976,7 +1007,7 @@
                 map.removeLayer(layers.taxiStops);
             }
         });
-        
+
         document.getElementById('show-traffic-cameras').addEventListener('change', (e) => {
             if (e.target.checked) {
                 map.addLayer(layers.trafficCameras);
@@ -984,9 +1015,10 @@
                 map.removeLayer(layers.trafficCameras);
             }
         });
-        
+
         // Load data on page load
         loadAllData();
     </script>
 </body>
+
 </html>
