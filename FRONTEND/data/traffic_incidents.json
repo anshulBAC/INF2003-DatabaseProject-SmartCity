@@ -1,0 +1,16 @@
+[
+  {
+    "Type": "Accident",
+    "Message": "Minor collision on Orchard Rd near Plaza",
+    "Latitude": 1.3035,
+    "Longitude": 103.8320,
+    "cachedAt": "2025-11-27T02:50:00Z"
+  },
+  {
+    "Type": "Breakdown",
+    "Message": "Vehicle breakdown on Clemenceau Ave",
+    "Latitude": 1.2992,
+    "Longitude": 103.8445,
+    "cachedAt": "2025-11-27T02:45:00Z"
+  }
+]

@@ -1,0 +1,5 @@
+[
+  { "road": "Orchard Rd", "speed": 42 },
+  { "road": "Clemenceau Ave", "speed": 28 },
+  { "road": "Alexandra Rd", "speed": 55 }
+]

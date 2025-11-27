@@ -1,0 +1,4 @@
+[
+  { "CarParkID": "CP101", "Development": "Orchard Central Carpark", "Latitude": 1.3032, "Longitude": 103.8325, "AvailableLots": 12 },
+  { "CarParkID": "CP202", "Development": "Clemenceau Carpark", "Latitude": 1.2995, "Longitude": 103.8448, "AvailableLots": 3 }
+]

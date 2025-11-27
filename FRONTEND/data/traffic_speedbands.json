@@ -1,0 +1,28 @@
+[
+  {
+    "LinkID": "1001",
+    "RoadName": "Orchard Rd",
+    "Area": "Orchard",
+    "SpeedBand": 3,
+    "MinimumSpeed": 35,
+    "MaximumSpeed": 45,
+    "StartLat": 1.3030,
+    "StartLon": 103.8318,
+    "EndLat": 1.3050,
+    "EndLon": 103.8340,
+    "cachedAt": "2025-11-27T03:00:00Z"
+  },
+  {
+    "LinkID": "1002",
+    "RoadName": "Clemenceau Ave",
+    "Area": "City",
+    "SpeedBand": 2,
+    "MinimumSpeed": 20,
+    "MaximumSpeed": 30,
+    "StartLat": 1.2990,
+    "StartLon": 103.8440,
+    "EndLat": 1.3010,
+    "EndLon": 103.8460,
+    "cachedAt": "2025-11-27T03:00:00Z"
+  }
+]

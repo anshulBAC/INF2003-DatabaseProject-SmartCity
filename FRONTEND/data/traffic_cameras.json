@@ -1,0 +1,4 @@
+[
+  { "CameraID": "C100", "Latitude": 1.3029, "Longitude": 103.8319, "ImageLink": "https://via.placeholder.com/400x200?text=Camera+1" },
+  { "CameraID": "C101", "Latitude": 1.2991, "Longitude": 103.8441, "ImageLink": "https://via.placeholder.com/400x200?text=Camera+2" }
+]
