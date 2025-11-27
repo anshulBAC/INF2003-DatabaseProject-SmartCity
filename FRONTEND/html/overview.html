@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart City Overview</title>
+
+  <link rel="stylesheet" href="../css/style.css">
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js" defer></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+  <script src="../js/main.js" defer></script>
+  <script src="../js/overview.js" defer></script>
+</head>
+<body>
+
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="overview.html" class="active">Overview</a>
+    <a href="traffic.html">Traffic</a>
+    <a href="transport.html">Transport</a>
+    <a href="weather.html">Weather</a>
+    <a href="accidents.html">Accidents</a>
+    <a href="#" id="logout-btn" style="margin-left:auto;">Logout</a>
+  </nav>
+
+  <div class="container">
+    <h1>City Map Overview</h1>
+
+    <div class="card" style="margin-top:20px; position:relative;">
+      <h2>City Map</h2>
+
+      <div id="mapControls">
+        <label><input type="checkbox" id="toggle-traffic"> Traffic</label>
+        <label><input type="checkbox" id="toggle-accidents"> Accidents</label>
+        <label><input type="checkbox" id="toggle-cameras"> Cameras</label>
+        <label><input type="checkbox" id="toggle-carparks"> Carparks</label>
+      </div>
+
+      <div id="cityMap" style="height:600px; border-radius:10px;"></div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>&copy; 2025 Smart City Project</p>
+  </footer>
+
+</body>
+</html>
