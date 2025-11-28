@@ -152,10 +152,10 @@ async function updateBusArrivalForStop(busStopCode) {
 async function updateTrafficSpeedBands() {
   const db = await connectDB();
   const col = db.collection('traffic_speed_bands');
-
   const data = await fetchFromLTA('v3/TrafficSpeedBands');
-
+  
   await col.deleteMany({});
+  
   if (data.length > 0) {
     const docs = data.map(d => ({
       ...d,
@@ -165,25 +165,24 @@ async function updateTrafficSpeedBands() {
     console.log(`Cached ${docs.length} traffic speed bands in MongoDB.`);
     
     const neo4jDriver = connectNeo4j();
-    const session = neo4jDriver.session({ database: 'neo4j' }); 
+    const session = neo4jDriver.session({ database: 'neo4j' });
     
     try {
       const cypher = `
-      UNWIND $segments AS segment
-      MATCH (start:Point {lat: toFloat(segment.StartLat), lon: toFloat(segment.StartLon)})-
-            [r:ROAD_SEGMENT]->
-            (end:Point {lat: toFloat(segment.EndLat), lon: toFloat(segment.EndLon)})
-      
-      SET r.current_speed_kph = (toFloat(segment.MinimumSpeed) + toFloat(segment.MaximumSpeed)) / 2.0,
-          r.duration_sec = CASE 
-            WHEN toFloat(segment.SpeedBand) > 0 THEN (r.distance_km / toFloat(segment.SpeedBand)) * 3600
-            ELSE 999999 
-          END
+        UNWIND $segments AS segment
+        MATCH (start:Point {lat: toFloat(segment.StartLat), lon: toFloat(segment.StartLon)})-
+          [r:ROAD_SEGMENT]->
+          (end:Point {lat: toFloat(segment.EndLat), lon: toFloat(segment.EndLon)})
+        WITH r, segment, (toFloat(segment.MinimumSpeed) + toFloat(segment.MaximumSpeed)) / 2.0 AS avgSpeed
+        SET r.current_speed_kph = avgSpeed,
+            r.duration_sec = CASE
+              WHEN avgSpeed > 0 THEN (r.distance_km / avgSpeed) * 3600
+              ELSE 999999
+            END
       `;
-
-      const result = await session.run(cypher, { segments: data });
-      console.log(`Updated ${result.summary.counters.updates().relationships} road segment speeds in Neo4j.`);
       
+      const result = await session.run(cypher, { segments: data });
+      console.log(`Updated ${result.summary.counters.updates().propertiesSet} road segment speeds in Neo4j.`);
     } catch (e) {
       console.error('[Neo4j] Speed Update Failed:', e.message);
     } finally {
@@ -192,6 +191,7 @@ async function updateTrafficSpeedBands() {
     
     return docs.length;
   }
+  
   return 0;
 }
 
@@ -205,6 +205,13 @@ async function buildRoadNetworkGraph() {
     return;
   }
   
+  const processedData = speedData.map(seg => ({
+    ...seg,
+    MinSpeed: parseFloat(seg.MinimumSpeed),
+    MaxSpeed: parseFloat(seg.MaximumSpeed),
+    AvgSpeed: (parseFloat(seg.MinimumSpeed) + parseFloat(seg.MaximumSpeed)) / 2.0
+  })); 
+  
   const neo4jDriver = connectNeo4j();
   const session = neo4jDriver.session();
   
@@ -213,36 +220,28 @@ async function buildRoadNetworkGraph() {
   let totalRelsCreated = 0;
   
   try {
-    for (let i = 0; i < speedData.length; i += batchSize) {
-      const batch = speedData.slice(i, i + batchSize);
-      console.log(`Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(speedData.length/batchSize)} (${batch.length} segments)`);
+    for (let i = 0; i < processedData.length; i += batchSize) {
+      const batch = processedData.slice(i, i + batchSize);
+      console.log(`Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(processedData.length/batchSize)} (${batch.length} segments)`);
       
       const cypher = `
       UNWIND $segments AS seg
-
+      
       MERGE (start:Point {lat: toFloat(seg.StartLat), lon: toFloat(seg.StartLon)})
       ON CREATE SET start.id = toString(seg.StartLat) + '_' + toString(seg.StartLon)
-
+      
       MERGE (end:Point {lat: toFloat(seg.EndLat), lon: toFloat(seg.EndLon)})
       ON CREATE SET end.id = toString(seg.EndLat) + '_' + toString(seg.EndLon)
-
-      WITH start, end, seg,
-          toFloat(toString(seg.MinimumSpeed)) AS minSpeed,
-          toFloat(toString(seg.MaximumSpeed)) AS maxSpeed
-
-      // Create only ONE direction - undirected queries will work both ways
+      
+      // Use pre-calculated speed from JavaScript
       MERGE (start)-[r:ROAD_SEGMENT]->(end)
       SET r.link_id = seg.LinkID,
           r.road_name = seg.RoadName,
           r.road_category = seg.RoadCategory,
           r.speed_band = seg.SpeedBand,
-          r.min_speed = minSpeed,
-          r.max_speed = maxSpeed,
-          r.current_speed_kph = CASE 
-              WHEN minSpeed IS NOT NULL AND maxSpeed IS NOT NULL 
-              THEN (minSpeed + maxSpeed) / 2.0
-              ELSE 50.0
-          END,
+          r.min_speed = seg.MinSpeed,
+          r.max_speed = seg.MaxSpeed,
+          r.current_speed_kph = seg.AvgSpeed,
           r.distance_km = point.distance(
               point({latitude: toFloat(seg.StartLat), longitude: toFloat(seg.StartLon)}),
               point({latitude: toFloat(seg.EndLat), longitude: toFloat(seg.EndLon)})
@@ -253,7 +252,7 @@ async function buildRoadNetworkGraph() {
           ELSE 999999
       END
       `;
-            
+      
       const result = await session.run(cypher, { segments: batch });
       const counters = result.summary.counters.updates();
       totalNodesCreated += counters.nodesCreated || 0;
@@ -261,7 +260,7 @@ async function buildRoadNetworkGraph() {
     }
     
     console.log(`Created ${totalNodesCreated} Point nodes`);
-    console.log(`Created ${totalRelsCreated} ROAD_SEGMENT relationships (bidirectional)`);
+    console.log(`Created ${totalRelsCreated} ROAD_SEGMENT relationships`);
     
   } catch (error) {
     console.error('Failed to build graph:', error.message);

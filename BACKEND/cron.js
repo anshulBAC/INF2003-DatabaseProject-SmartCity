@@ -1,4 +1,5 @@
 const cron = require('node-cron');
+const { connectNeo4j } = require('./nosql/neo4j');
 const {
   updateRoadworks,
   updateTrafficIncidents,
@@ -48,11 +49,25 @@ cron.schedule('*/5 * * * *', async () => {
 
 (async () => {
   try {
-    console.log('[STARTUP] Building initial road network graph in Neo4j...');
-    await buildRoadNetworkGraph();
-    console.log('[STARTUP] Road network graph build complete!');
+    console.log('[STARTUP] Checking if road network graph exists...');
+    
+    const neo4jDriver = connectNeo4j();
+    const session = neo4jDriver.session();
+    
+    const result = await session.run('MATCH (p:Point) RETURN count(p) as count');
+    const pointCount = result.records[0].get('count').toNumber();
+    await session.close();
+    
+    if (pointCount > 0) {
+      console.log(`[STARTUP] ✓ Graph already exists with ${pointCount} Point nodes. Skipping build.`);
+      console.log('[STARTUP] Only traffic speed updates will run every 5 minutes.');
+    } else {
+      console.log('[STARTUP] Graph is empty. Building initial road network...');
+      await buildRoadNetworkGraph();
+      console.log('[STARTUP] Road network graph build complete!');
+    }
   } catch (e) {
-    console.error('[STARTUP] Failed to build road network graph:', e.message);
+    console.error('[STARTUP] Failed to check/build road network graph:', e.message);
   }
 })();
 

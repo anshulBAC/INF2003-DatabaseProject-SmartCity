@@ -178,6 +178,15 @@
                     </div>
                 </div>
 
+                <div class="control-group">
+                    <label>Routing Algorithm</label>
+                    <div class="route-mode-selector">
+                        <div class="mode-button active" id="algo-osrm" onclick="setRoutingAlgo('osrm')">OSRM (External)</div>
+                        <div class="mode-button" id="algo-neo4j" onclick="setRoutingAlgo('neo4j')">Neo4j (LTA Real-time)</div>
+                    </div>
+                    <small style="color: #888; margin-top: 5px; display: block;">Neo4j uses live Singapore traffic data</small>
+                </div>
+
                 <button onclick="planRoute()" id="plan-route-btn">Find Route</button>
                 <button onclick="clearRoute()" style="margin-top: 10px; background: #dc3545;">Clear Route</button>
 
@@ -246,6 +255,7 @@
         // Route planning variables
         let routingControl = null;
         let routeMode = 'driving';
+        let routingAlgo = 'osrm'; 
         let routeMarkers = { from: null, to: null };
         let allBusStops = [];
 
@@ -331,6 +341,12 @@
             event.target.classList.add('active');
         }
 
+        function setRoutingAlgo(algo) {
+            routingAlgo = algo;
+            document.querySelectorAll('#algo-osrm, #algo-neo4j').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`algo-${algo}`).classList.add('active');
+        }
+
         // Map click for route selection
         let selectingRoutePoint = null;
 
@@ -366,29 +382,39 @@
             }
         });
 
-        function planRoute() {
+        async function planRoute() {
             const fromValue = document.getElementById('route-from').value;
             const toValue = document.getElementById('route-to').value;
-
+            
             if (!fromValue || !toValue) {
                 alert('Please select both starting point and destination');
                 return;
             }
-
+            
             // Parse coordinates
             const from = fromValue.split(',').map(v => parseFloat(v.trim()));
             const to = toValue.split(',').map(v => parseFloat(v.trim()));
-
+            
             if (from.length !== 2 || to.length !== 2) {
                 alert('Invalid coordinates format');
                 return;
             }
-
+            
             // Clear existing route
             if (routingControl) {
                 map.removeControl(routingControl);
+                routingControl = null;
             }
+            
+            // Route based on selected algorithm
+            if (routingAlgo === 'osrm') {
+                planRouteOSRM(from, to);
+            } else if (routingAlgo === 'neo4j') {
+                await planRouteNeo4j(from, to);
+            }
+        }
 
+        function planRouteOSRM(from, to) {
             // Create routing control
             routingControl = L.Routing.control({
                 waypoints: [
@@ -399,58 +425,198 @@
                 showAlternatives: true,
                 altLineOptions: {
                     styles: [
-                        { color: 'black', opacity: 0.15, weight: 9 },
-                        { color: 'white', opacity: 0.8, weight: 6 },
-                        { color: 'blue', opacity: 0.5, weight: 2 }
+                        {color: 'black', opacity: 0.15, weight: 9},
+                        {color: 'white', opacity: 0.8, weight: 6},
+                        {color: 'blue', opacity: 0.5, weight: 2}
                     ]
                 },
                 lineOptions: {
-                    styles: [{ color: '#667eea', weight: 5 }]
+                    styles: [{color: '#667eea', weight: 5}]
                 }
             }).addTo(map);
-
+            
             // Show route info
-            routingControl.on('routesfound', function (e) {
+            routingControl.on('routesfound', function(e) {
                 const routes = e.routes;
                 const summary = routes[0].summary;
-
                 const distance = (summary.totalDistance / 1000).toFixed(2);
                 const duration = Math.round(summary.totalTime / 60);
-
+                
                 document.getElementById('route-info').style.display = 'block';
                 document.getElementById('route-details').innerHTML = `
                     <div class="route-detail">
-                        <span>Distance:</span>
-                        <strong>${distance} km</strong>
+                        <span>Distance:</span> <strong>${distance} km</strong>
                     </div>
                     <div class="route-detail">
-                        <span>Duration:</span>
-                        <strong>${duration} mins</strong>
+                        <span>Duration:</span> <strong>${duration} mins</strong>
                     </div>
                     <div class="route-detail">
-                        <span>Mode:</span>
-                        <strong>${routeMode}</strong>
+                        <span>Mode:</span> <strong>${routeMode}</strong>
+                    </div>
+                    <div class="route-detail">
+                        <span>Algorithm:</span> <strong>OSRM</strong>
                     </div>
                 `;
             });
         }
 
+        async function planRouteNeo4j(from, to) {
+            try {
+                document.getElementById('route-info').style.display = 'block';
+                document.getElementById('route-details').innerHTML = '<div>🔄 Calculating optimal route with live traffic data...</div>';
+                
+                const response = await fetch(`${API_BASE_URL}/api/routing/optimize?start_lat=${from[0]}&start_lon=${from[1]}&end_lat=${to[0]}&end_lon=${to[1]}&vehicle_type=car`);
+                
+                if (!response.ok) {
+                    throw new Error('Routing failed');
+                }
+                
+                const data = await response.json();
+                
+                if (!data.routes || data.routes.length === 0) {
+                    throw new Error('No route found');
+                }
+                
+                const route = data.routes[0];
+                
+                // Display route info
+                document.getElementById('route-details').innerHTML = `
+                    <div class="route-detail">
+                        <span>🚗 ${route.name}</span>
+                    </div>
+                    <div class="route-detail">
+                        <span>Distance:</span> <strong>${route.distance_km} km</strong>
+                    </div>
+                    <div class="route-detail">
+                        <span>Duration:</span> <strong>${route.estimated_duration_minutes} mins</strong>
+                    </div>
+                    <div class="route-detail">
+                        <span>Algorithm:</span> <strong>Neo4j + LTA Real-time</strong>
+                    </div>
+                    <div class="route-detail">
+                        <span>Congestion:</span> <strong>${route.congestion_level}</strong>
+                    </div>
+                `;
+                
+                // Draw route with color-coded congestion
+                if (route.path_coordinates && route.path_coordinates.length > 0) {
+                    
+                    // If we have segment details, color-code by speed
+                    if (route.segment_details && route.segment_details.length > 0) {
+                        
+                        // Draw each segment with color based on speed
+                        for (let i = 0; i < route.segment_details.length; i++) {
+                            const segment = route.segment_details[i];
+                            const speed = segment.speed;
+                            
+                            // Determine color based on speed
+                            let color;
+                            if (speed < 20) {
+                                color = '#ff0000';  // Red - Heavy congestion
+                            } else if (speed < 40) {
+                                color = '#ff9800';  // Orange - Moderate
+                            } else if (speed < 60) {
+                                color = '#ffeb3b';  // Yellow - Light
+                            } else {
+                                color = '#4caf50';  // Green - Free flow
+                            }
+                            
+                            // Draw segment
+                            const segmentLine = L.polyline([
+                                route.path_coordinates[i],
+                                route.path_coordinates[i + 1]
+                            ], {
+                                color: color,
+                                weight: 6,
+                                opacity: 0.8
+                            }).addTo(map);
+                            
+                            // Add popup with segment info
+                            segmentLine.bindPopup(`
+                                <b>${segment.road_name}</b><br>
+                                Speed: ${Math.round(speed)} km/h<br>
+                                Distance: ${segment.distance.toFixed(2)} km
+                            `);
+                            
+                            if (!window.neo4jRouteLines) window.neo4jRouteLines = [];
+                            window.neo4jRouteLines.push(segmentLine);
+                        }
+                        
+                        // Add legend
+                        const legend = L.control({position: 'bottomright'});
+                        legend.onAdd = function() {
+                            const div = L.DomUtil.create('div', 'traffic-legend');
+                            div.innerHTML = `
+                                <div style="background: white; padding: 10px; border-radius: 5px;">
+                                    <b>Traffic Speed</b><br>
+                                    <i style="background: #4caf50; width: 20px; height: 3px; display: inline-block;"></i> > 60 km/h<br>
+                                    <i style="background: #ffeb3b; width: 20px; height: 3px; display: inline-block;"></i> 40-60 km/h<br>
+                                    <i style="background: #ff9800; width: 20px; height: 3px; display: inline-block;"></i> 20-40 km/h<br>
+                                    <i style="background: #ff0000; width: 20px; height: 3px; display: inline-block;"></i> < 20 km/h
+                                </div>
+                            `;
+                            return div;
+                        };
+                        legend.addTo(map);
+                        
+                        if (!window.neo4jRouteLines) window.neo4jRouteLines = [];
+                        window.neo4jRouteLines.push(legend);
+                        
+                    } else {
+                        // Fallback: single colored line
+                        const routeLine = L.polyline(route.path_coordinates, {
+                            color: '#ff6b6b',
+                            weight: 5,
+                            opacity: 0.8
+                        }).addTo(map);
+                        
+                        if (!window.neo4jRouteLines) window.neo4jRouteLines = [];
+                        window.neo4jRouteLines.push(routeLine);
+                    }
+                    
+                    // Fit map to route
+                    const bounds = L.latLngBounds(route.path_coordinates);
+                    map.fitBounds(bounds, { padding: [50, 50] });
+                }
+                
+            } catch (error) {
+                console.error('Neo4j routing error:', error);
+                document.getElementById('route-details').innerHTML = `
+                    <div style="color: #dc3545;">
+                        ❌ Failed to calculate route using Neo4j.<br>
+                        <small>${error.message}</small><br>
+                        <button onclick="routingAlgo='osrm'; setRoutingAlgo('osrm'); planRoute();" style="margin-top: 10px;">
+                            Try OSRM instead
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
         function clearRoute() {
+            // Clear OSRM routing control
             if (routingControl) {
                 map.removeControl(routingControl);
                 routingControl = null;
             }
-
+            
+            // Clear Neo4j route lines
+            if (window.neo4jRouteLines) {
+                window.neo4jRouteLines.forEach(line => map.removeLayer(line));
+                window.neo4jRouteLines = [];
+            }
+            
+            // Clear markers
             if (routeMarkers.from) {
                 map.removeLayer(routeMarkers.from);
                 routeMarkers.from = null;
             }
-
             if (routeMarkers.to) {
                 map.removeLayer(routeMarkers.to);
                 routeMarkers.to = null;
             }
-
+            
+            // Clear inputs
             document.getElementById('route-from').value = '';
             document.getElementById('route-to').value = '';
             document.getElementById('route-info').style.display = 'none';

@@ -28,6 +28,8 @@ class OptimizedRoute(BaseModel):
     distance_km: float
     estimated_duration_minutes: float
     congestion_level: str
+    path_coordinates: List[List[float]] = Field(default_factory=list)
+    segment_details: List[Dict[str, Any]] = Field(default_factory=list)
 
 class OptimizedRouteResponse(BaseModel):
     """Defines the overall response structure for route optimization."""
@@ -93,14 +95,20 @@ app.add_middleware(
 )
 
 # CORS middleware for frontend integration
+# CORS middleware for frontend integration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5000", "http://localhost:8080"],
+    allow_origins=[
+        "http://localhost:5000", 
+        "http://localhost:8080",
+        "http://localhost:5500",
+        "http://127.0.0.1:5500",  
+        "http://127.0.0.1:5000",     
+    ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
-
 
 @app.middleware("http")
 async def logging_middleware(request: Request, call_next):
@@ -486,11 +494,7 @@ async def get_analytics_overview(current_user = Depends(get_current_user_optiona
 # UTILITY ENDPOINTS
 # ================================
 
-@app.get(
-    "/api/routing/optimize",
-    response_model=OptimizedRouteResponse,
-    summary="Optimized Route Recommendations",
-)
+@app.get("/api/routing/optimize", response_model=OptimizedRouteResponse, summary="Optimized Route Recommendations")
 async def get_optimized_route_recommendations(
     start_lat: float = Query(..., description="Start latitude"),
     start_lon: float = Query(..., description="Start longitude"),
@@ -502,41 +506,13 @@ async def get_optimized_route_recommendations(
     try:
         validate_coordinates(start_lat, start_lon)
         validate_coordinates(end_lat, end_lon)
-
+        
         if not neo4j_driver:
-            raise HTTPException(
-                status_code=503, detail="Routing Service unavailable (Graph DB not connected)"
-            )
-            
+            raise HTTPException(status_code=503, detail="Routing Service unavailable - Graph DB not connected")
+        
         async with neo4j_driver.session() as session:
-            # First, check if we can find start and end points
-            debug_query = """
-            MATCH (start:Point)
-            WITH start, point.distance(
-                point({latitude: start.lat, longitude: start.lon}),
-                point({latitude: $start_lat, longitude: $start_lon})
-            ) AS start_distance
-            ORDER BY start_distance ASC
-            LIMIT 1
-            
-            MATCH (end:Point)
-            WITH start, end, point.distance(
-                point({latitude: end.lat, longitude: end.lon}),
-                point({latitude: $end_lat, longitude: $end_lon})
-            ) AS end_distance
-            ORDER BY end_distance ASC
-            LIMIT 1
-            
-            RETURN start.lat, start.lon, end.lat, end.lon, start <> end as different
-            """
-            
-            debug_result = await session.run(debug_query, start_lat=start_lat, start_lon=start_lon, 
-                                            end_lat=end_lat, end_lon=end_lon)
-            debug_data = await debug_result.data()
-            logger.info(f"Debug - Found points: {debug_data}")
-            
-            # Now try the actual routing query
             query = """
+            // Find nearest start point
             MATCH (start:Point)
             WITH start, point.distance(
                 point({latitude: start.lat, longitude: start.lon}),
@@ -545,6 +521,7 @@ async def get_optimized_route_recommendations(
             ORDER BY start_distance ASC
             LIMIT 1
             
+            // Find nearest end point
             MATCH (end:Point)
             WITH start, end, point.distance(
                 point({latitude: end.lat, longitude: end.lon}),
@@ -555,37 +532,81 @@ async def get_optimized_route_recommendations(
             
             WHERE start <> end
             
-            // Use simple shortestPath first to test
+            // Use native Cypher shortest path
             MATCH path = shortestPath((start)-[:ROAD_SEGMENT*]-(end))
-            WITH path, relationships(path) AS rels
+            WITH path, relationships(path) AS rels, nodes(path) AS nodes
             
             RETURN 
                 reduce(duration = 0, r IN rels | duration + coalesce(r.duration_sec, 0)) AS total_duration,
                 reduce(distance = 0, r IN rels | distance + coalesce(r.distance_km, 0)) AS total_distance,
-                [n IN nodes(path) | {lat: n.lat, lon: n.lon}] AS path_coordinates
+                [n IN nodes | [n.lat, n.lon]] AS path_coordinates,
+                [r IN rels | {
+                    road_name: r.road_name, 
+                    speed: r.current_speed_kph,
+                    distance: r.distance_km
+                }] AS segment_details
             """
             
             result = await session.run(query, start_lat=start_lat, start_lon=start_lon, 
-                                    end_lat=end_lat, end_lon=end_lon)
+                                      end_lat=end_lat, end_lon=end_lon)
             records = await result.data()
-            logger.info(f"Found {len(records)} routes")
-
+            logger.info(f'Found {len(records)} routes')
+        
         routes = []
         if records and len(records) > 0:
-            for idx, record in enumerate(records):
-                total_duration = record["total_duration"]
-                total_distance = record["total_distance"]
+            record = records[0]
+            total_duration = record["total_duration"]
+            total_distance = record["total_distance"]
+            path_coords = record["path_coordinates"]
+            segments = record.get("segment_details", [])
+            
+            # Calculate congestion level and build directions
+            segment_details = []
+            directions = []
+            
+            if segments:
+                # Calculate average speed
+                avg_speed = sum(s['speed'] for s in segments) / len(segments)
+                if avg_speed < 20:
+                    congestion = "Heavy"
+                elif avg_speed < 40:
+                    congestion = "Moderate"
+                else:
+                    congestion = "Light"
                 
-                routes.append({
-                    "route_id": f"graph_route_{idx + 1}",
-                    "name": "Fastest Route" if idx == 0 else f"Alternative Route {idx}",
-                    "distance_km": round(total_distance, 2), 
-                    "estimated_duration_minutes": round(total_duration / 60, 1),
-                    "congestion_level": "calculated"
-                })
+                # Build segment details and directions
+                for i, seg in enumerate(segments):
+                    segment_details.append({
+                        'road_name': seg['road_name'],
+                        'speed': seg['speed'],
+                        'distance': seg['distance']
+                    })
+                    
+                    # Simple turn detection
+                    if i == 0:
+                        directions.append(f"Head towards {seg['road_name']}")
+                    elif i > 0:
+                        current_road = seg['road_name']
+                        prev_road = segments[i-1]['road_name']
+                        if current_road != prev_road:
+                            distance_m = int(seg['distance'] * 1000)
+                            directions.append(f"Continue onto {current_road} ({distance_m}m)")
+            else:
+                congestion = "Unknown"
+            
+            routes.append({
+                "route_id": "graph_route_1",
+                "name": "Fastest Route",
+                "distance_km": round(total_distance, 2), 
+                "estimated_duration_minutes": round(total_duration / 60, 1),
+                "congestion_level": congestion,
+                "path_coordinates": path_coords,
+                "segment_details": segment_details,
+                "directions": directions
+            })
         else:
             raise DataNotFoundError("No viable route found between the points.")
-
+        
         return {
             "start_location": {"latitude": start_lat, "longitude": start_lon},
             "end_location": {"latitude": end_lat, "longitude": end_lon},
@@ -598,10 +619,7 @@ async def get_optimized_route_recommendations(
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         logger.error("Failed to optimize route", error=str(e))
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to generate optimized routes: {e.__class__.__name__}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to generate optimized routes: {e.__class__.__name__}")
 
 if __name__ == "__main__":
     import uvicorn
