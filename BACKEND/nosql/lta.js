@@ -1,6 +1,7 @@
 require('dotenv').config();
 const axios = require('axios');
-const { connectDB } = require('./db');
+const { connectDB } = require('./mongodb');
+const { connectNeo4j } = require('./neo4j');
 
 const headers = {
   AccountKey: process.env.LTA_API_KEY,
@@ -8,23 +9,43 @@ const headers = {
 };
 
 async function fetchFromLTA(endpoint) {
-  try {
-    const url = `https://datamall2.mytransport.sg/ltaodataservice/${endpoint}`;
-    console.log(`Fetching LTA: ${url}`);
-    const res = await axios.get(url, { headers });
-    const data = res.data.value || res.data || [];
-    console.log(
-      `LTA ${endpoint} returned ${Array.isArray(data) ? data.length : 'N/A'} records`
-    );
-    return data;
-  } catch (error) {
-    console.error(`LTA ${endpoint} failed:`, error.response?.status, error.message);
-    if (error.response?.status === 401) {
-      throw new Error('Invalid LTA API Key - Check .env');
+  let allData = [];
+  let skip = 0;
+  const batchSize = 500;
+  
+  while (true) {
+    try {
+      const url = skip === 0 
+        ? `https://datamall2.mytransport.sg/ltaodataservice/${endpoint}`
+        : `https://datamall2.mytransport.sg/ltaodataservice/${endpoint}?$skip=${skip}`;
+      
+      console.log(`Fetching LTA: ${url}`);
+      const res = await axios.get(url, { headers });
+      const data = res.data.value || res.data;
+      
+      if (!data || data.length === 0) {
+        break;
+      }
+      
+      allData = allData.concat(data);
+      console.log(`Fetched ${data.length} records (total: ${allData.length})`);
+      
+      if (data.length < batchSize) {
+        break;
+      }
+      
+      skip += batchSize;
+      
+    } catch (error) {
+      console.error(`LTA ${endpoint} failed at skip=${skip}: ${error.response?.status} ${error.message}`);
+      break;
     }
-    return [];
   }
+  
+  console.log(`LTA ${endpoint} total: ${allData.length} records`);
+  return allData;
 }
+
 
 async function updateTrafficIncidents() {
   const db = await connectDB();
@@ -39,7 +60,7 @@ async function updateTrafficIncidents() {
       cachedAt: new Date(),
     }));
     await col.insertMany(docs);
-    console.log(`✓ Cached ${docs.length} traffic incidents`);
+    console.log(`Cached ${docs.length} traffic incidents`);
     return docs.length;
   }
   return 0;
@@ -58,7 +79,7 @@ async function updateRoadworks() {
       cachedAt: new Date(),
     }));
     await col.insertMany(docs);
-    console.log(`✓ Cached ${docs.length} roadworks`);
+    console.log(`Cached ${docs.length} roadworks`);
     return docs.length;
   }
   return 0;
@@ -78,7 +99,7 @@ async function updateVMSEMAS() {
       cachedAt: new Date(),
     }));
     await col.insertMany(docs);
-    console.log(`✓ Cached ${docs.length} VMS/EMAS records`);
+    console.log(`Cached ${docs.length} VMS/EMAS records`);
     return docs.length;
   }
   return 0;
@@ -98,7 +119,7 @@ async function updateTrainServiceAlerts() {
       cachedAt: new Date(),
     }));
     await col.insertMany(docs);
-    console.log(`✓ Cached ${docs.length} train service alerts`);
+    console.log(`Cached ${docs.length} train service alerts`);
     return docs.length;
   }
   return 0;
@@ -122,10 +143,132 @@ async function updateBusArrivalForStop(busStopCode) {
       { $set: doc },
       { upsert: true }
     );
-    console.log(`✓ Cached bus arrival for stop ${busStopCode}`);
+    console.log(`Cached bus arrival for stop ${busStopCode}`);
     return 1;
   }
   return 0;
+}
+
+async function updateTrafficSpeedBands() {
+  const db = await connectDB();
+  const col = db.collection('traffic_speed_bands');
+
+  const data = await fetchFromLTA('v3/TrafficSpeedBands');
+
+  await col.deleteMany({});
+  if (data.length > 0) {
+    const docs = data.map(d => ({
+      ...d,
+      cachedAt: new Date(),
+    }));
+    await col.insertMany(docs);
+    console.log(`Cached ${docs.length} traffic speed bands in MongoDB.`);
+    
+    const neo4jDriver = connectNeo4j();
+    const session = neo4jDriver.session({ database: 'neo4j' }); 
+    
+    try {
+      const cypher = `
+      UNWIND $segments AS segment
+      MATCH (start:Point {lat: toFloat(segment.StartLat), lon: toFloat(segment.StartLon)})-
+            [r:ROAD_SEGMENT]->
+            (end:Point {lat: toFloat(segment.EndLat), lon: toFloat(segment.EndLon)})
+      
+      SET r.current_speed_kph = (toFloat(segment.MinimumSpeed) + toFloat(segment.MaximumSpeed)) / 2.0,
+          r.duration_sec = CASE 
+            WHEN toFloat(segment.SpeedBand) > 0 THEN (r.distance_km / toFloat(segment.SpeedBand)) * 3600
+            ELSE 999999 
+          END
+      `;
+
+      const result = await session.run(cypher, { segments: data });
+      console.log(`Updated ${result.summary.counters.updates().relationships} road segment speeds in Neo4j.`);
+      
+    } catch (e) {
+      console.error('[Neo4j] Speed Update Failed:', e.message);
+    } finally {
+      await session.close();
+    }
+    
+    return docs.length;
+  }
+  return 0;
+}
+
+async function buildRoadNetworkGraph() {
+  const speedData = await fetchFromLTA('v3/TrafficSpeedBands');
+  
+  console.log('Total speed data segments:', speedData ? speedData.length : 0);
+  
+  if (!speedData || speedData.length === 0) {
+    console.log('No traffic speed band data available');
+    return;
+  }
+  
+  const neo4jDriver = connectNeo4j();
+  const session = neo4jDriver.session();
+  
+  const batchSize = 1000;
+  let totalNodesCreated = 0;
+  let totalRelsCreated = 0;
+  
+  try {
+    for (let i = 0; i < speedData.length; i += batchSize) {
+      const batch = speedData.slice(i, i + batchSize);
+      console.log(`Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(speedData.length/batchSize)} (${batch.length} segments)`);
+      
+      const cypher = `
+      UNWIND $segments AS seg
+
+      MERGE (start:Point {lat: toFloat(seg.StartLat), lon: toFloat(seg.StartLon)})
+      ON CREATE SET start.id = toString(seg.StartLat) + '_' + toString(seg.StartLon)
+
+      MERGE (end:Point {lat: toFloat(seg.EndLat), lon: toFloat(seg.EndLon)})
+      ON CREATE SET end.id = toString(seg.EndLat) + '_' + toString(seg.EndLon)
+
+      WITH start, end, seg,
+          toFloat(toString(seg.MinimumSpeed)) AS minSpeed,
+          toFloat(toString(seg.MaximumSpeed)) AS maxSpeed
+
+      // Create only ONE direction - undirected queries will work both ways
+      MERGE (start)-[r:ROAD_SEGMENT]->(end)
+      SET r.link_id = seg.LinkID,
+          r.road_name = seg.RoadName,
+          r.road_category = seg.RoadCategory,
+          r.speed_band = seg.SpeedBand,
+          r.min_speed = minSpeed,
+          r.max_speed = maxSpeed,
+          r.current_speed_kph = CASE 
+              WHEN minSpeed IS NOT NULL AND maxSpeed IS NOT NULL 
+              THEN (minSpeed + maxSpeed) / 2.0
+              ELSE 50.0
+          END,
+          r.distance_km = point.distance(
+              point({latitude: toFloat(seg.StartLat), longitude: toFloat(seg.StartLon)}),
+              point({latitude: toFloat(seg.EndLat), longitude: toFloat(seg.EndLon)})
+          ) / 1000.0
+      SET r.duration_sec = CASE
+          WHEN r.current_speed_kph > 0 
+          THEN (r.distance_km / r.current_speed_kph) * 3600
+          ELSE 999999
+      END
+      `;
+            
+      const result = await session.run(cypher, { segments: batch });
+      const counters = result.summary.counters.updates();
+      totalNodesCreated += counters.nodesCreated || 0;
+      totalRelsCreated += counters.relationshipsCreated || 0;
+    }
+    
+    console.log(`Created ${totalNodesCreated} Point nodes`);
+    console.log(`Created ${totalRelsCreated} ROAD_SEGMENT relationships (bidirectional)`);
+    
+  } catch (error) {
+    console.error('Failed to build graph:', error.message);
+    throw error;
+  } finally {
+    await session.close();
+  }
 }
 
 module.exports = {
@@ -134,4 +277,7 @@ module.exports = {
   updateVMSEMAS,
   updateTrainServiceAlerts,
   updateBusArrivalForStop,
+  updateTrafficSpeedBands,
+  buildRoadNetworkGraph,
+  fetchFromLTA,
 };

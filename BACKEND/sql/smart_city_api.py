@@ -10,19 +10,19 @@ from pydantic import BaseModel
 from datetime import datetime
 import mysql.connector
 from mysql.connector import Error
-import os
 import requests
+from app.config.settings import settings
 
-# Database Configuration
 DB_CONFIG = {
-    'host': 'localhost',
-    'user': 'root',
-    'password': '',  # Update with your DB password
-    'database': 'smart_city'
+    # Assuming these attributes exist in your Settings model
+    'host': settings.MARIADB_HOST,
+    'user': settings.MARIADB_USER,
+    'password': settings.MARIADB_PASSWORD, 
+    'database': settings.MARIADB_DATABASE
 }
 
-# LTA API Configuration for live data
-LTA_API_KEY = "UBeaFtamQiicQpl/8AAZfA=="
+LTA_API_KEY = settings.LTA_API_KEY
+
 # Initialize FastAPI app
 app = FastAPI(
     title="Smart City API",

@@ -2,11 +2,13 @@ from fastapi import FastAPI, HTTPException, Depends, Request, Query, Path
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, ClassVar
+from neo4j import AsyncGraphDatabase, AsyncDriver
 from datetime import datetime, timedelta
 import structlog
 import time
 from contextlib import asynccontextmanager
+from pydantic import BaseModel, Field
 
 from app.config.settings import settings
 from app.config.database import connect_to_mongo, close_mongo_connection, connect_to_redis, close_redis_connection
@@ -17,7 +19,23 @@ from app.utils.helpers import (
 )
 
 logger = structlog.get_logger(__name__)
+neo4j_driver: Optional[AsyncDriver] = None
 
+class OptimizedRoute(BaseModel):
+    """Defines a single optimized route result."""
+    route_id: str
+    name: str
+    distance_km: float
+    estimated_duration_minutes: float
+    congestion_level: str
+
+class OptimizedRouteResponse(BaseModel):
+    """Defines the overall response structure for route optimization."""
+    start_location: dict 
+    end_location: dict 
+    vehicle_type: str
+    generated_at: str
+    routes: List[OptimizedRoute]
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -29,7 +47,16 @@ async def lifespan(app: FastAPI):
         # Initialize database connections
         await connect_to_mongo()
         await connect_to_redis()
+
+        global neo4j_driver
+        uri = settings.NEO4J_URI  
+        user = settings.NEO4J_USER
+        password = settings.NEO4J_PASSWORD
         
+        neo4j_driver = AsyncGraphDatabase.driver(uri, auth=(user, password))
+        await neo4j_driver.verify_connectivity()
+        logger.info("Connected to Neo4j Graph Database")    
+
         logger.info("Application startup completed successfully")
         
         yield
@@ -41,6 +68,9 @@ async def lifespan(app: FastAPI):
     finally:
         # Shutdown
         logger.info("Shutting down Smart City Framework API")
+        if neo4j_driver:
+            await neo4j_driver.close()
+            logger.info("Disconnected from Neo4j")
         await close_mongo_connection()
         await close_redis_connection()
         logger.info("Application shutdown completed")
@@ -456,38 +486,106 @@ async def get_analytics_overview(current_user = Depends(get_current_user_optiona
 # UTILITY ENDPOINTS
 # ================================
 
-@app.get("/api/v1/routes/optimize", tags=["Traffic Management"])
-async def optimize_route(
-    start_lat: float = Query(..., ge=-90, le=90, description="Starting latitude"),
-    start_lon: float = Query(..., ge=-180, le=180, description="Starting longitude"),
-    end_lat: float = Query(..., ge=-90, le=90, description="Destination latitude"),
-    end_lon: float = Query(..., ge=-180, le=180, description="Destination longitude"),
-    vehicle_type: str = Query("car", regex="^(car|truck|motorcycle)$", description="Vehicle type"),
-    current_user = Depends(get_current_user_optional)
+@app.get(
+    "/api/routing/optimize",
+    response_model=OptimizedRouteResponse,
+    summary="Optimized Route Recommendations",
+)
+async def get_optimized_route_recommendations(
+    start_lat: float = Query(..., description="Start latitude"),
+    start_lon: float = Query(..., description="Start longitude"),
+    end_lat: float = Query(..., description="End latitude"),
+    end_lon: float = Query(..., description="End longitude"),
+    vehicle_type: str = Query("car", description="Vehicle type (car, bus/train)"),
 ):
-    """Get optimized route recommendations based on real-time traffic"""
+    """Get optimized route recommendations based on real-time traffic using Neo4j"""
     try:
         validate_coordinates(start_lat, start_lon)
         validate_coordinates(end_lat, end_lon)
-        
-        # Demo route optimization
-        routes = [
-            {
-                "route_id": "route_1",
-                "name": "Fastest Route",
-                "distance_km": 12.5,
-                "estimated_duration_minutes": 18,
-                "congestion_level": "low"
-            },
-            {
-                "route_id": "route_2",
-                "name": "Alternative Route", 
-                "distance_km": 15.2,
-                "estimated_duration_minutes": 22,
-                "congestion_level": "medium"
-            }
-        ]
-        
+
+        if not neo4j_driver:
+            raise HTTPException(
+                status_code=503, detail="Routing Service unavailable (Graph DB not connected)"
+            )
+            
+        async with neo4j_driver.session() as session:
+            # First, check if we can find start and end points
+            debug_query = """
+            MATCH (start:Point)
+            WITH start, point.distance(
+                point({latitude: start.lat, longitude: start.lon}),
+                point({latitude: $start_lat, longitude: $start_lon})
+            ) AS start_distance
+            ORDER BY start_distance ASC
+            LIMIT 1
+            
+            MATCH (end:Point)
+            WITH start, end, point.distance(
+                point({latitude: end.lat, longitude: end.lon}),
+                point({latitude: $end_lat, longitude: $end_lon})
+            ) AS end_distance
+            ORDER BY end_distance ASC
+            LIMIT 1
+            
+            RETURN start.lat, start.lon, end.lat, end.lon, start <> end as different
+            """
+            
+            debug_result = await session.run(debug_query, start_lat=start_lat, start_lon=start_lon, 
+                                            end_lat=end_lat, end_lon=end_lon)
+            debug_data = await debug_result.data()
+            logger.info(f"Debug - Found points: {debug_data}")
+            
+            # Now try the actual routing query
+            query = """
+            MATCH (start:Point)
+            WITH start, point.distance(
+                point({latitude: start.lat, longitude: start.lon}),
+                point({latitude: $start_lat, longitude: $start_lon})
+            ) AS start_distance
+            ORDER BY start_distance ASC
+            LIMIT 1
+            
+            MATCH (end:Point)
+            WITH start, end, point.distance(
+                point({latitude: end.lat, longitude: end.lon}),
+                point({latitude: $end_lat, longitude: $end_lon})
+            ) AS end_distance
+            ORDER BY end_distance ASC
+            LIMIT 1
+            
+            WHERE start <> end
+            
+            // Use simple shortestPath first to test
+            MATCH path = shortestPath((start)-[:ROAD_SEGMENT*]-(end))
+            WITH path, relationships(path) AS rels
+            
+            RETURN 
+                reduce(duration = 0, r IN rels | duration + coalesce(r.duration_sec, 0)) AS total_duration,
+                reduce(distance = 0, r IN rels | distance + coalesce(r.distance_km, 0)) AS total_distance,
+                [n IN nodes(path) | {lat: n.lat, lon: n.lon}] AS path_coordinates
+            """
+            
+            result = await session.run(query, start_lat=start_lat, start_lon=start_lon, 
+                                    end_lat=end_lat, end_lon=end_lon)
+            records = await result.data()
+            logger.info(f"Found {len(records)} routes")
+
+        routes = []
+        if records and len(records) > 0:
+            for idx, record in enumerate(records):
+                total_duration = record["total_duration"]
+                total_distance = record["total_distance"]
+                
+                routes.append({
+                    "route_id": f"graph_route_{idx + 1}",
+                    "name": "Fastest Route" if idx == 0 else f"Alternative Route {idx}",
+                    "distance_km": round(total_distance, 2), 
+                    "estimated_duration_minutes": round(total_duration / 60, 1),
+                    "congestion_level": "calculated"
+                })
+        else:
+            raise DataNotFoundError("No viable route found between the points.")
+
         return {
             "start_location": {"latitude": start_lat, "longitude": start_lon},
             "end_location": {"latitude": end_lat, "longitude": end_lon},
@@ -496,13 +594,14 @@ async def optimize_route(
             "routes": routes
         }
         
+    except DataNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         logger.error("Failed to optimize route", error=str(e))
         raise HTTPException(
             status_code=500,
-            detail="Failed to generate optimized routes"
+            detail=f"Failed to generate optimized routes: {e.__class__.__name__}"
         )
-
 
 if __name__ == "__main__":
     import uvicorn
