@@ -4,7 +4,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from typing import List, Optional, Dict, Any, ClassVar
 from neo4j import AsyncGraphDatabase, AsyncDriver
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import structlog
 import time
 import math
@@ -377,7 +377,7 @@ async def get_traffic_predictions(
             "prediction_count": len(predictions),
             "horizon_minutes": horizon_minutes,
             "road_filter": road_name,
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc)().isoformat(),
             "predictions": [pred.dict() for pred in predictions]
         }
         
@@ -403,48 +403,47 @@ async def get_traffic_incidents(
     hours_back: int = Query(24, ge=1, le=168, description="Hours of incident history"),
     current_user = Depends(get_current_user_optional)
 ):
-    """Get traffic incidents and alerts (demo data for now)"""
+    """Get traffic incidents and alerts from MongoDB cache"""
     try:
-        # Demo incidents data
-        current_time = datetime.utcnow()
+        from app.config.database import get_mongo_db
         
-        sample_incidents = [
-            {
-                "incident_id": "INC_001",
-                "type": "Vehicle Breakdown",
-                "severity": "medium",
-                "road_name": "Orchard Road",
-                "description": "Vehicle breakdown blocking left lane",
-                "latitude": 1.3048,
-                "longitude": 103.8318,
-                "start_time": (current_time - timedelta(hours=2)).isoformat(),
-                "is_active": True,
-                "reported_by": "Traffic Camera System"
-            },
-            {
-                "incident_id": "INC_002",
-                "type": "Road Works", 
-                "severity": "high",
-                "road_name": "Marina Bay Area",
-                "description": "Emergency road repairs causing lane closures",
-                "latitude": 1.2966,
-                "longitude": 103.8547,
-                "start_time": (current_time - timedelta(hours=6)).isoformat(),
-                "is_active": True,
-                "reported_by": "Road Maintenance Team"
-            }
-        ]
+        db = get_mongo_db()
+        collection = db['traffic_incidents']
         
-        # Apply filters
-        filtered_incidents = sample_incidents
+        # Build query
+        query = {}
+        
+        # Filter by time if needed
+        if hours_back:
+            cutoff_time = datetime.now(timezone.utc)() - timedelta(hours=hours_back)
+            query['cachedAt'] = {'$gte': cutoff_time}
+        
+        # Fetch from database
+        incidents = list(collection.find(query).sort('cachedAt', -1))
+        
+        # Format response
+        formatted_incidents = []
+        for inc in incidents:
+            formatted_incidents.append({
+                "incident_id": str(inc.get('_id', '')),
+                "type": inc.get('Type', 'Unknown'),
+                "description": inc.get('Message', ''),
+                "latitude": inc.get('Latitude'),
+                "longitude": inc.get('Longitude'),
+                "start_time": inc.get('cachedAt', datetime.now(timezone.utc)()).isoformat(),
+                "is_active": True,
+                "reported_by": "LTA DataMall"
+            })
+        
+        # Apply active filter if needed
         if active_only:
-            filtered_incidents = [inc for inc in filtered_incidents if inc.get("is_active", True)]
+            formatted_incidents = [inc for inc in formatted_incidents if inc.get("is_active", True)]
         
         return {
-            "incident_count": len(filtered_incidents),
+            "incident_count": len(formatted_incidents),
             "active_only": active_only,
             "hours_back": hours_back,
-            "incidents": filtered_incidents
+            "incidents": formatted_incidents
         }
         
     except Exception as e:
@@ -453,7 +452,6 @@ async def get_traffic_incidents(
             status_code=500,
             detail="Failed to retrieve traffic incidents"
         )
-
 
 # ================================
 # PARKING ENDPOINTS
@@ -700,7 +698,7 @@ async def get_optimized_route_recommendations(
             "start_location": {"latitude": start_lat, "longitude": start_lon},
             "end_location": {"latitude": end_lat, "longitude": end_lon},
             "vehicle_type": vehicle_type,
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc)().isoformat(),
             "routes": routes
         }
     

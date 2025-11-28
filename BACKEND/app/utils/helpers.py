@@ -85,9 +85,9 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
     to_encode = data.copy()
     
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc)() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now(timezone.utc)() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     
     to_encode.update({"exp": expire})
     
@@ -105,7 +105,7 @@ def verify_token(token: str) -> Dict[str, Any]:
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         exp = payload.get("exp")
-        if exp and datetime.fromtimestamp(exp) < datetime.utcnow():
+        if exp and datetime.fromtimestamp(exp) < datetime.now(timezone.utc)():
             raise AuthenticationError("Token has expired")
         return payload
     except JWTError as e:
@@ -203,7 +203,7 @@ def validate_date_range(start_date: datetime, end_date: datetime, max_days: int 
     if start_date >= end_date:
         raise ValidationError("Start date must be before end date", "date_range")
     
-    if end_date > datetime.utcnow():
+    if end_date > datetime.now(timezone.utc)():
         raise ValidationError("End date cannot be in the future", "end_date")
     
     days_diff = (end_date - start_date).days
@@ -242,7 +242,7 @@ async def cache_get(key: str) -> Optional[Any]:
         if key in _cache:
             # Check if cache entry is still valid (5 minutes TTL)
             timestamp = _cache_timestamps.get(key, 0)
-            if datetime.utcnow().timestamp() - timestamp < 300:  # 5 minutes
+            if datetime.now(timezone.utc)().timestamp() - timestamp < 300:  # 5 minutes
                 logger.debug("Cache hit", key=key)
                 return _cache[key]
             else:
@@ -263,7 +263,7 @@ async def cache_set(key: str, value: Any, ttl: int = 300) -> bool:
     """Set value in cache"""
     try:
         _cache[key] = value
-        _cache_timestamps[key] = datetime.utcnow().timestamp()
+        _cache_timestamps[key] = datetime.now(timezone.utc)().timestamp()
         
         logger.debug("Cache set", key=key, ttl=ttl)
         return True

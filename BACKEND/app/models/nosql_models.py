@@ -1,8 +1,7 @@
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
-
 
 class TrafficSpeedBand(str, Enum):
     """Traffic speed band categories from LTA"""
@@ -47,7 +46,7 @@ class RealTimeTrafficSpeed(BaseModel):
     current_speed: Optional[float] = Field(None, ge=0, description="Current average speed km/h")
     free_flow_speed: float = Field(..., ge=0, description="Free flow speed km/h")
     speed_band: TrafficSpeedBand = Field(..., description="Traffic congestion level")
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     data_source: str = Field(default="LTA_API", description="Source of the data")
     
     class Config:
@@ -70,10 +69,11 @@ class CarParkAvailability(BaseModel):
     lot_type: str = Field(..., description="C (Car), H (Heavy Vehicle), Y (Motorcycle)")
     status: ParkingStatus = Field(...)
     pricing_scheme: Optional[str] = Field(None)
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     data_source: str = Field(default="LTA_API")
     
-    @validator('available_lots')
+    @field_validator('available_lots')
+    @classmethod
     def validate_available_lots(cls, v, values):
         if 'total_lots' in values and v > values['total_lots']:
             raise ValueError('Available lots cannot exceed total lots')
@@ -103,7 +103,7 @@ class TrafficIncident(BaseModel):
     lanes_affected: Optional[int] = Field(None, ge=0)
     is_active: bool = Field(default=True)
     reported_by: str = Field(default="SYSTEM", description="Source of report")
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
     class Config:
         collection_name = "traffic_incidents"
@@ -127,7 +127,7 @@ class WeatherData(BaseModel):
     wind_direction: Optional[str] = Field(None, description="Wind direction")
     visibility: Optional[float] = Field(None, ge=0, description="Visibility in km")
     condition: WeatherCondition = Field(...)
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     data_source: str = Field(default="NEA_API")
     
     class Config:
@@ -149,7 +149,7 @@ class IoTSensorReading(BaseModel):
     quality_score: float = Field(default=1.0, ge=0, le=1, description="Data quality score")
     battery_level: Optional[float] = Field(None, ge=0, le=100)
     is_online: bool = Field(default=True)
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
     class Config:
         collection_name = "iot_sensors"
@@ -176,8 +176,8 @@ class CitizenReport(BaseModel):
     reporter_contact: Optional[str] = Field(None, description="Contact info (anonymized)")
     assigned_to: Optional[str] = Field(None, description="Assigned department/officer")
     resolution_notes: Optional[str] = Field(None)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     resolved_at: Optional[datetime] = Field(None)
     
     class Config:
@@ -202,7 +202,7 @@ class PredictiveAnalytics(BaseModel):
     historical_accuracy: Optional[float] = Field(None, ge=0, le=1)
     model_version: str = Field(..., description="ML model version used")
     input_features: Dict[str, Any] = Field(..., description="Features used for prediction")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     valid_until: datetime = Field(..., description="When prediction expires")
     
     class Config:
@@ -225,7 +225,7 @@ class SystemMetrics(BaseModel):
     threshold_critical: Optional[float] = Field(None)
     status: str = Field(default="normal", pattern="^(normal|warning|critical)$")
     tags: Dict[str, str] = Field(default={}, description="Additional metadata")
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
     class Config:
         collection_name = "system_metrics"

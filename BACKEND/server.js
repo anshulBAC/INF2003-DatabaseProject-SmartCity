@@ -39,11 +39,19 @@ function isCacheStale(cachedAt, ttlSeconds) {
 
 app.get('/api/traffic/incidents', async (req, res) => {
   try {
-    const { type } = req.query;
-    const findQuery = type
-      ? { Type: { $regex: type, $options: 'i' } }
-      : {};
-
+    let findQuery = {};
+    
+    if (type) {
+      findQuery.Type = { $regex: type, $options: 'i' };
+    } else {
+      findQuery.Type = { 
+        $not: { 
+          $regex: 'heavy traffic|heavy vehicle traffic', 
+          $options: 'i' 
+        } 
+      };
+    }
+    
     const data = await db
       .collection('traffic_incidents')
       .find(findQuery)

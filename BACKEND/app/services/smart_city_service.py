@@ -70,7 +70,7 @@ class LTAAPIService:
             data = await self._make_request("TrafficSpeedBandsv2", params)
             
             traffic_speeds = []
-            current_time = datetime.utcnow()
+            current_time = datetime.now(timezone.utc)()
             
             for item in data.get("value", []):
                 speed_band_mapping = {
@@ -108,7 +108,7 @@ class LTAAPIService:
             data = await self._make_request("CarParkAvailabilityv2", params)
             
             carpark_availability = []
-            current_time = datetime.utcnow()
+            current_time = datetime.now(timezone.utc)()
             
             for item in data.get("value", []):
                 total_lots = item["TotalLots"]
@@ -213,7 +213,7 @@ class TrafficService:
             ]
             
             overview = {
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc)().isoformat(),
                 "total_monitored_roads": total_links,
                 "overall_traffic_health": self._calculate_traffic_health(green_count, yellow_count, red_count),
                 "average_speed_kmh": round(avg_speed, 1),
@@ -258,7 +258,7 @@ class TrafficService:
             current_traffic = await self.lta_service.get_all_traffic_speeds()
             
             predictions = []
-            current_time = datetime.utcnow()
+            current_time = datetime.now(timezone.utc)()
             prediction_time = current_time + timedelta(minutes=horizon_minutes)
             
             if road_name:
@@ -374,7 +374,7 @@ class ParkingService:
             # For now, return a simple structure
             # In full implementation, this would call LTA carpark APIs
             return {
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc)().isoformat(),
                 "total_carparks": 0,
                 "available_lots": 0,
                 "utilization_rate": 0.0,
@@ -392,7 +392,7 @@ class PlanningService:
         """Get urban planning data overview"""
         try:
             return {
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc)().isoformat(),
                 "planning_areas": 0,
                 "development_projects": 0,
                 "message": "Planning service implementation in progress"
@@ -409,7 +409,7 @@ class AnalyticsService:
         """Get analytics overview"""
         try:
             return {
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc)().isoformat(),
                 "reports_available": 0,
                 "insights_generated": 0,
                 "message": "Analytics service implementation in progress"

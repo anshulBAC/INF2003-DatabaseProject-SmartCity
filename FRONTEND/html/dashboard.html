@@ -94,24 +94,6 @@
                             <label for="show-incidents">Traffic Incidents</label>
                             <span class="count" id="incidents-count">0</span>
                         </div>
-
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="show-roadworks" checked>
-                            <label for="show-roadworks">Roadworks</label>
-                            <span class="count" id="roadworks-count">0</span>
-                        </div>
-
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="show-vms" checked>
-                            <label for="show-vms">VMS / EMAS</label>
-                            <span class="count" id="vms-count">0</span>
-                        </div>
-
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="show-train-alerts" checked>
-                            <label for="show-train-alerts">Train Service Alerts</label>
-                            <span class="count" id="train-alerts-count">0</span>
-                        </div>
                     </div>
                 </div>
 
@@ -247,7 +229,6 @@
             trafficCameras: L.layerGroup().addTo(map),
 
             incidents: L.layerGroup().addTo(map),
-            roadworks: L.layerGroup().addTo(map),
             vms: L.layerGroup().addTo(map),
             trainAlerts: L.layerGroup().addTo(map),
         };
@@ -306,11 +287,10 @@
 
             if (type.includes("accident")) emoji = "💥";
             else if (type.includes("breakdown")) emoji = "🚗";
-            else if (type.includes("heavy")) emoji = "🚙";
             else if (type.includes("roadwork")) emoji = "🚧";
             else if (type.includes("flood")) emoji = "🌊";
             else if (type.includes("traffic light")) emoji = "🚦";
-            else if (type.includes("obstacle")) emoji = "⛔";
+            else if (type.includes("obstacle")) emoji = "⚠️";
 
             return L.divIcon({
                 html: `<div style="font-size:22px;">${emoji}</div>`,
@@ -818,95 +798,20 @@
             updateMarquee();
         }
 
-        async function loadRoadworks() {
-            const res = await fetch("http://localhost:5000/api/roadworks");
-            const json = await res.json();
-            const data = json.data || [];
-
-            layers.roadworks.clearLayers();
-
-            data.forEach(rw => {
-                if (!rw.latitude || !rw.longitude) return;
-
-                const marker = L.circleMarker([rw.latitude, rw.longitude], {
-                    radius: 7,
-                    color: "#ffa000",
-                    fillColor: "#ffca28",
-                    fillOpacity: 0.9
-                }).bindPopup(`
-                    <b>Roadworks</b><br>
-                    Road: ${rw.roadName}<br>
-                    Location: ${rw.location}<br>
-                    Start: ${rw.startDate}<br>
-                    End: ${rw.endDate}
-                `);
-
-                layers.roadworks.addLayer(marker);
-            });
-
-            document.getElementById("roadworks-count").textContent = data.length;
-
-            liveAlerts.roadworks = data;
-            updateMarquee();
-        }
-
-
         async function loadVMS() {
-            const res = await fetch("http://localhost:5000/api/vms");
+            const res = await fetch(`http://localhost:5000/api/vms`);
             const json = await res.json();
-            const data = json.data || [];
-
-            layers.vms.clearLayers();
-
-            data.forEach(vms => {
-                const msg = vms.Message || vms.message;
-                if (!msg) return;
-
-                const marker = L.circleMarker([1.3521, 103.8198], {
-                    radius: 10,
-                    color: "#00bcd4",
-                    fillColor: "#80deea",
-                    fillOpacity: 0.9
-                }).bindPopup(`
-                    <b>VMS Message</b><br>
-                    ${msg}
-                `);
-
-                layers.vms.addLayer(marker);
-            });
-
-            document.getElementById("vms-count").textContent = data.length;
-
+            const data = json.data;
+            
             liveAlerts.vms = data;
             updateMarquee();
-
         }
 
         async function loadTrainAlerts() {
-            const res = await fetch("http://localhost:5000/api/train/alerts");
+            const res = await fetch(`http://localhost:5000/api/train/alerts`);
             const json = await res.json();
-            const data = json.data || [];
-
-            layers.trainAlerts.clearLayers();
-
-            data.forEach(alert => {
-                const marker = L.circleMarker([1.3521, 103.8198], {
-                    radius: 12,
-                    color: "#00e5ff",
-                    fillColor: "#18ffff",
-                    fillOpacity: 0.8
-                }).bindPopup(`
-                    <b>Train Alert</b><br>
-                    Line: ${alert.line}<br>
-                    Status: ${alert.status}<br>
-                    Message: ${alert.content}
-                `);
-
-                layers.trainAlerts.addLayer(marker);
-            });
-
-            document.getElementById("train-alerts-count").textContent = data.length;
-
+            const data = json.data;
+    
             liveAlerts.train = data;
             updateMarquee();
         }
@@ -997,54 +902,48 @@
             train: [],
             vms: [],
             incidents: [],
-            roadworks: []
         };
 
         function updateMarquee() {
-            const marquee = document.getElementById("alert-marquee");
+            const marquee = document.getElementById('alert-marquee');
             if (!marquee) return;
 
             let items = [];
 
-            // Train alerts
-            liveAlerts.train.forEach(a => {
-                if (a.content)
-                    items.push(`<span class="alert-item">🚆 ${a.line}: ${a.content}</span>`);
-            });
-
             // VMS messages
             liveAlerts.vms.forEach(v => {
-                const msg = v.Message || v.message || "";
-                if (msg)
-                    items.push(`<span class="alert-item">🪧 VMS: ${msg}</span>`);
+                const msg = (v.Message || v.message || '').trim();
+                if (msg) {
+                const formattedMsg = msg.replace(/,/g, ' ');
+                items.push(`<span class="alert-item">📢 ${formattedMsg}</span>`);
+                }
+            });
+            
+            // Train alerts
+            liveAlerts.train.forEach(a => {
+                if (a.content) {
+                items.push(`<span class="alert-item">🚇 ${a.line}: ${a.content}</span>`);
+                }
             });
 
-            // Incidents
+            // All incidents
             liveAlerts.incidents.forEach(i => {
-                if (i.message)
-                    items.push(`<span class="alert-item">🚧 ${i.type || "Incident"}: ${i.message}</span>`);
+                if (i.message) {
+                items.push(`<span class="alert-item">⚠️ ${i.type}: ${i.message}</span>`);
+                }
             });
 
-            // Roadworks
-            liveAlerts.roadworks.forEach(r => {
-                if (r.location)
-                    items.push(`<span class="alert-item">🛠️ Roadworks: ${r.roadName} – ${r.location}</span>`);
-            });
-
-            // Nothing?
             if (items.length === 0) {
-                marquee.innerHTML = "No active alerts.";
-                marquee.style.animation = "none";
+                marquee.innerHTML = 'No active alerts.';
+                marquee.style.animation = 'none';
                 return;
             }
 
-            marquee.innerHTML = items.join("") + items.join("");
-
-            // Adjust speed based on number of alerts
+            marquee.innerHTML = items.join(' &nbsp;&nbsp;&nbsp; ') + ' &nbsp;&nbsp;&nbsp; ' + items.join(' &nbsp;&nbsp;&nbsp; ');
+            
             const duration = Math.max(12, items.length * 6);
             marquee.style.animation = `scrollAlerts ${duration}s linear infinite`;
-        }
-
+            }
 
         async function loadAllData() {
             document.getElementById('loading').style.display = 'block';
@@ -1058,7 +957,6 @@
                     loadTaxiStops(),
                     loadTrafficCameras(),
                     loadIncidents(),
-                    loadRoadworks(),
                     loadVMS(),
                     loadTrainAlerts(),
                     loadCacheStats(),
@@ -1124,28 +1022,6 @@
                 map.removeLayer(layers.incidents);
             }
         });
-        document.getElementById("show-roadworks").addEventListener("change", (e) => {
-            if (e.target.checked) {
-                map.addLayer(layers.roadworks);
-            } else {
-                map.removeLayer(layers.roadworks);
-            }
-        });
-        document.getElementById("show-vms").addEventListener("change", (e) => {
-            if (e.target.checked) {
-                map.addLayer(layers.vms);
-            } else {
-                map.removeLayer(layers.vms);
-            }
-        });
-        document.getElementById("show-train-alerts").addEventListener("change", (e) => {
-            if (e.target.checked) {
-                map.addLayer(layers.trainAlerts);
-            } else {
-                map.removeLayer(layers.trainAlerts);
-            }
-        });
-
 
         // Load data on page load
         loadAllData();
