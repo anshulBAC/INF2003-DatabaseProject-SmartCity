@@ -59,7 +59,7 @@ cron.schedule('*/5 * * * *', async () => {
     await session.close();
     
     if (pointCount > 0) {
-      console.log(`[STARTUP] ✓ Graph already exists with ${pointCount} Point nodes. Skipping build.`);
+      console.log(`[STARTUP] Graph already exists with ${pointCount} Point nodes. Skipping build.`);
       console.log('[STARTUP] Only traffic speed updates will run every 5 minutes.');
     } else {
       console.log('[STARTUP] Graph is empty. Building initial road network...');

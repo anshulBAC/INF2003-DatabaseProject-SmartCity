@@ -490,13 +490,39 @@
                     <div class="route-detail">
                         <span>Duration:</span> <strong>${route.estimated_duration_minutes} mins</strong>
                     </div>
-                    <div class="route-detail">
-                        <span>Algorithm:</span> <strong>Neo4j + LTA Real-time</strong>
-                    </div>
-                    <div class="route-detail">
-                        <span>Congestion:</span> <strong>${route.congestion_level}</strong>
-                    </div>
                 `;
+
+                if (route.directions && route.directions.length > 0) {
+                    const directionsHtml = route.directions.map((dir, idx) => {
+                        // Determine icon based on instruction
+                        let icon = '➡️';
+                        if (dir.includes('Sharp left')) icon = '↙️';
+                        else if (dir.includes('Turn left') || dir.includes('left')) icon = '⬅️';
+                        else if (dir.includes('Bear left')) icon = '↖️';
+                        else if (dir.includes('Sharp right')) icon = '↘️';
+                        else if (dir.includes('Turn right') || dir.includes('right')) icon = '➡️';
+                        else if (dir.includes('Bear right')) icon = '↗️';
+                        else if (dir.includes('U-turn')) icon = '↩️';
+                        else if (dir.includes('Continue') || dir.includes('Head')) icon = '⬆️';
+                        else if (dir.includes('arrived') || dir.includes('destination')) icon = '🏁';
+
+                        return `
+                            <div style="padding: 8px; border-bottom: 1px solid #eee; display: flex; align-items: start;">
+                                <span style="font-size: 20px; margin-right: 10px;">${icon}</span>
+                                <span style="flex: 1;">${dir}</span>
+                            </div>
+                        `;
+                    }).join('');
+                    
+                    document.getElementById('route-details').innerHTML += `
+                        <div style="margin-top: 15px;">
+                            <strong>Turn-by-Turn Directions:</strong>
+                            <div style="max-height: 300px; overflow-y: auto; margin-top: 10px; border: 1px solid #ddd; border-radius: 4px; background: white;">
+                                ${directionsHtml}
+                            </div>
+                        </div>
+                    `;
+                }
                 
                 // Draw route with color-coded congestion
                 if (route.path_coordinates && route.path_coordinates.length > 0) {

@@ -7,8 +7,10 @@ from neo4j import AsyncGraphDatabase, AsyncDriver
 from datetime import datetime, timedelta
 import structlog
 import time
+import math
 from contextlib import asynccontextmanager
 from pydantic import BaseModel, Field
+
 
 from app.config.settings import settings
 from app.config.database import connect_to_mongo, close_mongo_connection, connect_to_redis, close_redis_connection
@@ -21,6 +23,43 @@ from app.utils.helpers import (
 logger = structlog.get_logger(__name__)
 neo4j_driver: Optional[AsyncDriver] = None
 
+def calculate_bearing(lat1, lon1, lat2, lon2):
+    """Calculate bearing between two points in degrees (0-360)"""
+    lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
+    
+    dlon = lon2 - lon1
+    x = math.sin(dlon) * math.cos(lat2)
+    y = math.cos(lat1) * math.sin(lat2) - math.sin(lat1) * math.cos(lat2) * math.cos(dlon)
+    
+    bearing = math.atan2(x, y)
+    bearing = math.degrees(bearing)
+    bearing = (bearing + 360) % 360
+    
+    return bearing
+
+def get_turn_instruction(bearing1, bearing2):
+    """Determine turn instruction based on angle between two bearings"""
+    angle = (bearing2 - bearing1 + 360) % 360
+    
+    if angle < 10 or angle > 350:
+        return "Continue"
+    elif 10 <= angle < 45:
+        return "Bear right"
+    elif 45 <= angle < 135:
+        return "Turn right"
+    elif 135 <= angle < 170:
+        return "Sharp right"
+    elif 170 <= angle <= 190:
+        return "Make a U-turn"
+    elif 190 < angle < 225:
+        return "Sharp left"
+    elif 225 <= angle < 315:
+        return "Turn left"
+    elif 315 <= angle < 350:
+        return "Bear left"
+    else:
+        return "Continue"
+
 class OptimizedRoute(BaseModel):
     """Defines a single optimized route result."""
     route_id: str
@@ -30,6 +69,7 @@ class OptimizedRoute(BaseModel):
     congestion_level: str
     path_coordinates: List[List[float]] = Field(default_factory=list)
     segment_details: List[Dict[str, Any]] = Field(default_factory=list)
+    directions: List[str] = Field(default_factory=list)
 
 class OptimizedRouteResponse(BaseModel):
     """Defines the overall response structure for route optimization."""
@@ -575,6 +615,9 @@ async def get_optimized_route_recommendations(
                     congestion = "Light"
                 
                 # Build segment details and directions
+                current_accumulated_distance = 0
+                last_road_name = None
+
                 for i, seg in enumerate(segments):
                     segment_details.append({
                         'road_name': seg['road_name'],
@@ -582,18 +625,64 @@ async def get_optimized_route_recommendations(
                         'distance': seg['distance']
                     })
                     
-                    # Simple turn detection
+                    current_road = seg['road_name']
+                    
+                    # First segment
                     if i == 0:
-                        directions.append(f"Head towards {seg['road_name']}")
-                    elif i > 0:
-                        current_road = seg['road_name']
-                        prev_road = segments[i-1]['road_name']
-                        if current_road != prev_road:
-                            distance_m = int(seg['distance'] * 1000)
-                            directions.append(f"Continue onto {current_road} ({distance_m}m)")
+                        last_road_name = current_road
+                        current_accumulated_distance = seg['distance']
+                    
+                    # Road name changed - add instruction for previous road
+                    elif current_road != last_road_name:
+                        # Calculate bearing for turn instruction
+                        if i < len(path_coords) - 1 and i > 0:
+                            prev_lat1, prev_lon1 = path_coords[i-1]
+                            prev_lat2, prev_lon2 = path_coords[i]
+                            curr_lat1, curr_lon1 = path_coords[i]
+                            curr_lat2, curr_lon2 = path_coords[i+1]
+                            
+                            prev_bearing = calculate_bearing(prev_lat1, prev_lon1, prev_lat2, prev_lon2)
+                            curr_bearing = calculate_bearing(curr_lat1, curr_lon1, curr_lat2, curr_lon2)
+                            turn_instruction = get_turn_instruction(prev_bearing, curr_bearing)
+                        else:
+                            turn_instruction = "Continue"
+                        
+                        # Format accumulated distance
+                        distance_m = int(current_accumulated_distance * 1000)
+                        if distance_m < 1000:
+                            distance_str = f"{distance_m}m"
+                        else:
+                            distance_km = round(current_accumulated_distance, 1)
+                            distance_str = f"{distance_km}km"
+                        
+                        # Add direction for the accumulated road we just left
+                        directions.append(f"{turn_instruction} onto {current_road} ({distance_str})")
+                        
+                        # Reset for new road
+                        last_road_name = current_road
+                        current_accumulated_distance = seg['distance']
+                    else:
+                        # Same road - accumulate distance
+                        current_accumulated_distance += seg['distance']
+
+                # Add final road segment (the last accumulated distance)
+                if last_road_name and current_accumulated_distance > 0:
+                    distance_m = int(current_accumulated_distance * 1000)
+                    if distance_m < 1000:
+                        distance_str = f"{distance_m}m"
+                    else:
+                        distance_km = round(current_accumulated_distance, 1)
+                        distance_str = f"{distance_km}km"
+                    
+                    # This is the LAST segment, so we don't have a "turn" - just continuing to destination
+                    directions.append(f"Continue to destination on {last_road_name} ({distance_str})")
+
+                # Add arrival message
+                directions.append("You have arrived at your destination")
+
             else:
                 congestion = "Unknown"
-            
+
             routes.append({
                 "route_id": "graph_route_1",
                 "name": "Fastest Route",
@@ -614,7 +703,7 @@ async def get_optimized_route_recommendations(
             "generated_at": datetime.utcnow().isoformat(),
             "routes": routes
         }
-        
+    
     except DataNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
