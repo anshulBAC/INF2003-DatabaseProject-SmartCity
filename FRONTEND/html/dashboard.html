@@ -82,17 +82,6 @@
                 </div>
             </div>
 
-            <div class="cache-section">
-                <h3>📊 Cache Snapshot</h3>
-                <div class="cache-grid" id="cache-stats">
-                    </div>
-                <div class="cache-buttons">
-                    <button class="cache-btn" onclick="app.data.loadCacheStats()">🔄 Refresh Cache Stats</button>
-                    <button class="cache-btn warning" onclick="app.data.forceRefresh()">🚀 Force Data Refresh</button>
-                    <button class="cache-btn danger" onclick="app.data.clearCache()">🗑️ Clear Cache</button>
-                </div>
-            </div>
-
             <div id="route-tab" class="tab-content">
                 <h2>🧭 Route Planner</h2>
 
@@ -320,8 +309,7 @@
                             app.data.loadIncidents(),
                             app.data.loadVMS(),
                             app.data.loadTrainAlerts(),
-                            app.data.loadStatistics(),
-                            app.data.loadCacheStats()
+                            app.data.loadStatistics()
                         ]);
                         app.ui.updateMarquee();
                     } finally {
@@ -408,32 +396,6 @@
                     items.forEach(i => {
                         grid.innerHTML += `<div class="stat-card"><div class="number">${(i.v || 0).toLocaleString()}</div><div class="label">${i.l}</div></div>`;
                     });
-                },
-
-                loadCacheStats: async () => {
-                    const json = await app.data.fetch(CONFIG.API.NOSQL, '/api/cache/stats');
-                    const container = document.getElementById("cache-stats");
-                    container.innerHTML = "";
-                    const stats = json.cacheStats || {};
-                    if (Object.keys(stats).length === 0) {
-                        container.innerHTML = "<div>No cache data</div>";
-                        return;
-                    }
-                    Object.keys(stats).forEach(key => {
-                        const s = stats[key];
-                        container.innerHTML += `
-                            <div class="cache-card">
-                                <div class="label">${key.replace(/_/g, " ")}</div>
-                                <div class="value">${s.totalRecords} records</div>
-                                <div class="meta">Age: ${s.ageSeconds ?? "N/A"}s</div>
-                            </div>`;
-                    });
-                },
-
-                forceRefresh: async () => { await app.data.refreshAll(); },
-                clearCache: async () => {
-                    await fetch(`${CONFIG.API.NOSQL}/api/cache/clear`, { method: "DELETE" });
-                    app.data.loadCacheStats();
                 }
             },
 
