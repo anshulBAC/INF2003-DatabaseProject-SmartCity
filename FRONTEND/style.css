@@ -1,3 +1,6 @@
+/* ==========================================================================
+   1. GLOBAL RESET & TYPOGRAPHY
+   ========================================================================== */
 * {
     margin: 0;
     padding: 0;
@@ -7,17 +10,21 @@
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: #f5f5f5;
+    overflow: hidden; /* Prevents double scrollbars */
 }
 
+/* ==========================================================================
+   2. HEADER
+   ========================================================================== */
 .header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     padding: 20px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-
     display: flex;
     align-items: center;
     justify-content: space-between;
+    height: 100px; /* Fixed height for calculation */
 }
 
 .header h1 {
@@ -30,9 +37,28 @@ body {
     font-size: 14px;
 }
 
+.logout-btn {
+    margin-left: auto;
+    float: right;
+    background: #ff6b6b;
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.logout-btn:hover {
+    background: #ff4c4c;
+}
+
+/* ==========================================================================
+   3. LAYOUT CONTAINERS
+   ========================================================================== */
 .container {
     display: flex;
-    height: calc(100vh - 100px);
+    height: calc(100vh - 100px); /* Subtract header height */
 }
 
 .sidebar {
@@ -41,8 +67,20 @@ body {
     padding: 20px;
     overflow-y: auto;
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+    z-index: 1001; /* Ensure above map elements */
+    display: flex;
+    flex-direction: column;
 }
 
+#map {
+    flex: 1;
+    position: relative;
+    z-index: 1;
+}
+
+/* ==========================================================================
+   4. SIDEBAR COMPONENTS
+   ========================================================================== */
 .sidebar h2 {
     font-size: 18px;
     margin-bottom: 15px;
@@ -52,6 +90,7 @@ body {
     gap: 8px;
 }
 
+/* --- Tabs --- */
 .tab-buttons {
     display: flex;
     gap: 10px;
@@ -89,6 +128,7 @@ body {
     display: block;
 }
 
+/* --- Stats Grid --- */
 .stats-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -115,6 +155,7 @@ body {
     opacity: 0.9;
 }
 
+/* --- Checkbox Controls --- */
 .control-group {
     margin-bottom: 20px;
 }
@@ -167,6 +208,68 @@ body {
     font-size: 12px;
 }
 
+/* --- Buttons --- */
+button {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: transform 0.2s;
+}
+
+button:hover {
+    transform: translateY(-2px);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* --- Legend --- */
+.legend {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.legend h3 {
+    font-size: 14px;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+
+.legend-color {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    margin-right: 10px;
+    border: 2px solid white;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+}
+
+/* ==========================================================================
+   5. ROUTE PLANNING SECTION
+   ========================================================================== */
 .route-input-group {
     margin-bottom: 15px;
 }
@@ -254,129 +357,9 @@ body {
     background: #e9ecef;
 }
 
-#map {
-    flex: 1;
-    position: relative;
-}
-
-.legend {
-    background: white;
-    padding: 15px;
-    border-radius: 8px;
-    margin-top: 20px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-.legend h3 {
-    font-size: 14px;
-    margin-bottom: 10px;
-    color: #333;
-}
-
-.legend-item {
-    display: flex;
-    align-items: center;
-    margin-bottom: 8px;
-    font-size: 13px;
-}
-
-.legend-color {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    margin-right: 10px;
-    border: 2px solid white;
-    box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
-}
-
-.loading {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: white;
-    padding: 20px 40px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-    z-index: 1000;
-}
-
-.loading-spinner {
-    border: 3px solid #f3f3f3;
-    border-top: 3px solid #667eea;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 10px;
-}
-
-@keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
-}
-
-.error {
-    background: #fee;
-    color: #c00;
-    padding: 10px;
-    border-radius: 5px;
-    margin: 10px 0;
-    font-size: 13px;
-}
-
-button {
-    width: 100%;
-    padding: 12px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-    transition: transform 0.2s;
-}
-
-button:hover {
-    transform: translateY(-2px);
-}
-
-button:active {
-    transform: translateY(0);
-}
-
-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-}
-
-.logout-btn {
-    margin-left: auto;
-    float: right;
-    background: #ff6b6b;
-    color: #fff;
-    padding: 8px 14px;
-    border-radius: 6px;
-    text-decoration: none;
-    font-weight: 600;
-    transition: background 0.2s;
-}
-
-.logout-btn:hover {
-    background: #ff4c4c;
-}
-.leaflet-div-icon {
-    background: transparent !important;
-    border: none !important;
-}
-/* Cache Snapshot Section */
+/* ==========================================================================
+   6. CACHE & ALERTS
+   ========================================================================== */
 .cache-section {
     margin-top: 20px;
     background: rgba(0, 0, 0, 0.05);
@@ -404,19 +387,9 @@ button:disabled {
     box-shadow: 0 1px 4px rgba(0,0,0,0.1);
 }
 
-.cache-card .label {
-    opacity: 0.7;
-}
-
-.cache-card .value {
-    font-weight: bold;
-    margin-top: 3px;
-}
-
-.cache-card .meta {
-    font-size: 0.7em;
-    opacity: 0.6;
-}
+.cache-card .label { opacity: 0.7; }
+.cache-card .value { font-weight: bold; margin-top: 3px; }
+.cache-card .meta { font-size: 0.7em; opacity: 0.6; }
 
 .cache-buttons {
     margin-top: 10px;
@@ -435,44 +408,30 @@ button:disabled {
     cursor: pointer;
 }
 
-.cache-btn:hover {
-    background: #576cd3;
-}
+.cache-btn:hover { background: #576cd3; }
+.cache-btn.warning { background: #ff9800; }
+.cache-btn.danger { background: #d32f2f; }
 
-.cache-btn.warning {
-    background: #ff9800;
-}
-
-.cache-btn.danger {
-    background: #d32f2f;
-}
-/* Floating live alert box */
+/* --- Live Alert Marquee --- */
 #live-alert-box {
     position: absolute;
     top: 20px;
     left: 0;
     right: 0;
-
     width: 100%;
-    max-width: none;
-
     padding: 15px 25px;
     z-index: 5000;
-
     color: white;
     background: rgba(0, 0, 0, 0.55);
     backdrop-filter: blur(6px);
-
-    border-radius: 0; /* full-width bar */
+    border-radius: 0;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-
     font-family: "Segoe UI", sans-serif;
     font-size: 14px;
     display: flex;
     align-items: center;
-    gap: 35px; /* spacing between icons/messages */
+    gap: 35px;
 }
-
 
 #live-alert-box .alert-title {
     font-size: 0.85em;
@@ -494,15 +453,57 @@ button:disabled {
     animation: scrollAlerts 25s linear infinite;
 }
 
-/* Animation */
 @keyframes scrollAlerts {
     0% { transform: translateX(0); }
     100% { transform: translateX(-50%); }
 }
 
-/* Individual alert chunks */
 .alert-item {
     margin-right: 50px;
     display: inline-block;
 }
 
+/* ==========================================================================
+   7. UTILITIES (Loading, Errors)
+   ========================================================================== */
+.loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 20px 40px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+}
+
+.loading-spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #667eea;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.error {
+    background: #fee;
+    color: #c00;
+    padding: 10px;
+    border-radius: 5px;
+    margin: 10px 0;
+    font-size: 13px;
+}
+
+/* Leaflet Overrides to remove white box around custom icons */
+.leaflet-div-icon {
+    background: transparent !important;
+    border: none !important;  
+}

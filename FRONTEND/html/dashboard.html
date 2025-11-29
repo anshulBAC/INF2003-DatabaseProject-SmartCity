@@ -6,12 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart City Dashboard - Singapore Transportation</title>
 
-    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- Leaflet Routing Machine CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
     <link rel="stylesheet" href="../style.css">
-
 </head>
 
 <body>
@@ -22,43 +19,19 @@
         </div>
     </div>
 
-
     <div class="container">
+        
         <div class="sidebar">
-            <!-- Tab Buttons -->
+            
             <div class="tab-buttons">
-                <div class="tab-button active" onclick="switchTab('layers')">🗺️ Layers</div>
-                <div class="tab-button" onclick="switchTab('route')">🧭 Routes</div>
+                <div class="tab-button active" onclick="app.ui.switchTab('layers')">🗺️ Layers</div>
+                <div class="tab-button" onclick="app.ui.switchTab('route')">🧭 Routes</div>
             </div>
 
-            <!-- Layers Tab -->
             <div id="layers-tab" class="tab-content active">
                 <h2>📊 Statistics</h2>
                 <div class="stats-grid" id="stats-grid">
-                    <div class="stat-card">
-                        <div class="number">-</div>
-                        <div class="label">Bus Stops</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="number">-</div>
-                        <div class="label">Train Stations</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="number">-</div>
-                        <div class="label">Carparks</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="number">-</div>
-                        <div class="label">Taxi Stands</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="number">-</div>
-                        <div class="label">Traffic Cameras</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="number">-</div>
-                        <div class="label">Bus Routes</div>
-                    </div>
+                    <div class="stat-card"><div class="number">-</div><div class="label">Loading...</div></div>
                 </div>
 
                 <div class="control-group">
@@ -97,47 +70,29 @@
                     </div>
                 </div>
 
-                <button onclick="refreshData()">🔄 Refresh Data</button>
+                <button onclick="app.data.refreshAll()">🔄 Refresh Data</button>
 
                 <div class="legend">
                     <h3>Legend</h3>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background: #3388ff;"></div>
-                        <span>Bus Stops</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background: #ff0000;"></div>
-                        <span>Train Stations</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background: #00ff00;"></div>
-                        <span>Carparks</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background: #ffaa00;"></div>
-                        <span>Taxi Stands</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background: #9900ff;"></div>
-                        <span>Traffic Cameras</span>
-                    </div>
+                    <div class="legend-item"><div class="legend-color" style="background: #3388ff;"></div><span>Bus Stops</span></div>
+                    <div class="legend-item"><div class="legend-color" style="background: #ff0000;"></div><span>Train Stations</span></div>
+                    <div class="legend-item"><div class="legend-color" style="background: #00ff00;"></div><span>Carparks</span></div>
+                    <div class="legend-item"><div class="legend-color" style="background: #ffaa00;"></div><span>Taxi Stands</span></div>
+                    <div class="legend-item"><div class="legend-color" style="background: #9900ff;"></div><span>Traffic Cameras</span></div>
                 </div>
             </div>
+
             <div class="cache-section">
                 <h3>📊 Cache Snapshot</h3>
-
                 <div class="cache-grid" id="cache-stats">
-                    <!-- Populated by JS -->
-                </div>
-
+                    </div>
                 <div class="cache-buttons">
-                    <button class="cache-btn" onclick="loadCacheStats()">🔄 Refresh Cache Stats</button>
-                    <button class="cache-btn warning" onclick="forceDataRefresh()">🚀 Force Data Refresh</button>
-                    <button class="cache-btn danger" onclick="clearCache()">🗑️ Clear Cache</button>
+                    <button class="cache-btn" onclick="app.data.loadCacheStats()">🔄 Refresh Cache Stats</button>
+                    <button class="cache-btn warning" onclick="app.data.forceRefresh()">🚀 Force Data Refresh</button>
+                    <button class="cache-btn danger" onclick="app.data.clearCache()">🗑️ Clear Cache</button>
                 </div>
             </div>
 
-            <!-- Route Planning Tab -->
             <div id="route-tab" class="tab-content">
                 <h2>🧭 Route Planner</h2>
 
@@ -154,23 +109,23 @@
                 <div class="control-group">
                     <label>Travel Mode</label>
                     <div class="route-mode-selector">
-                        <div class="mode-button active" onclick="setRouteMode('driving')">🚗 Drive</div>
-                        <div class="mode-button" onclick="setRouteMode('walking')">🚶 Walk</div>
-                        <div class="mode-button" onclick="setRouteMode('transit')">🚌 Transit</div>
+                        <div class="mode-button active" onclick="app.routing.setMode('driving')">🚗 Drive</div>
+                        <div class="mode-button" onclick="app.routing.setMode('walking')">🚶 Walk</div>
+                        <div class="mode-button" onclick="app.routing.setMode('transit')">🚌 Transit</div>
                     </div>
                 </div>
 
                 <div class="control-group">
                     <label>Routing Algorithm</label>
                     <div class="route-mode-selector">
-                        <div class="mode-button active" id="algo-osrm" onclick="setRoutingAlgo('osrm')">OSRM (External)</div>
-                        <div class="mode-button" id="algo-neo4j" onclick="setRoutingAlgo('neo4j')">Neo4j (LTA Real-time)</div>
+                        <div class="mode-button active" id="algo-osrm" onclick="app.routing.setAlgo('osrm')">OSRM (External)</div>
+                        <div class="mode-button" id="algo-neo4j" onclick="app.routing.setAlgo('neo4j')">Neo4j (LTA Real-time)</div>
                     </div>
                     <small style="color: #888; margin-top: 5px; display: block;">Neo4j uses live Singapore traffic data</small>
                 </div>
 
-                <button onclick="planRoute()" id="plan-route-btn">Find Route</button>
-                <button onclick="clearRoute()" style="margin-top: 10px; background: #dc3545;">Clear Route</button>
+                <button onclick="app.routing.planRoute()" id="plan-route-btn">Find Route</button>
+                <button onclick="app.routing.clearRoute()" style="margin-top: 10px; background: #dc3545;">Clear Route</button>
 
                 <div id="route-info" class="route-info" style="display: none;">
                     <h4>Route Information</h4>
@@ -202,832 +157,490 @@
         </div>
     </div>
 
-    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Leaflet Routing Machine -->
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 
     <script>
-        // Configuration
-        const API_BASE_URL = 'http://localhost:8000';
+        /**
+         * ============================================================================
+         * 1. CONFIGURATION & CONSTANTS
+         * ============================================================================
+         */
+        const CONFIG = {
+            API: {
+                SQL: 'http://localhost:8000',   // FastAPI Port (Bus stops, etc)
+                NOSQL: 'http://localhost:5000'  // Node.js Port (Live incidents)
+            },
+            LIMITS: {
+                BUS_STOPS: 5000,
+                DEFAULT: 1000
+            },
+            MAP: {
+                CENTER: [1.3521, 103.8198],
+                ZOOM: 12
+            }
+        };
 
-        // Initialize map centered on Singapore
-        const map = L.map('map').setView([1.3521, 103.8198], 12);
-
-        // Add OpenStreetMap tile layer
+        // Initialize Map
+        const map = L.map('map').setView(CONFIG.MAP.CENTER, CONFIG.MAP.ZOOM);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors',
             maxZoom: 19
         }).addTo(map);
 
-        // Layer groups for different data types
+        // Global State & Layers
         const layers = {
             busStops: L.layerGroup().addTo(map),
             trainStations: L.layerGroup().addTo(map),
             carparks: L.layerGroup().addTo(map),
             taxiStops: L.layerGroup(),
             trafficCameras: L.layerGroup().addTo(map),
-
             incidents: L.layerGroup().addTo(map),
             vms: L.layerGroup().addTo(map),
             trainAlerts: L.layerGroup().addTo(map),
         };
 
-        // Route planning variables
-        let routingControl = null;
-        let routeMode = 'driving';
-        let routingAlgo = 'osrm'; 
-        let routeMarkers = { from: null, to: null };
-        let allBusStops = [];
-
-        // Custom marker icons
-        const icons = {
-            busStop: L.icon({
-                iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzMzODhmZiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCIgZmlsbD0iIzMzODhmZiIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+PC9zdmc+',
-                iconSize: [12, 12],
-                iconAnchor: [6, 6],
-                popupAnchor: [0, -6]
-            }),
-            trainStation: L.icon({
-                iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2ZmMDAwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCIgZmlsbD0iI2ZmMDAwMCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+PC9zdmc+',
-                iconSize: [14, 14],
-                iconAnchor: [7, 7],
-                popupAnchor: [0, -7]
-            }),
-            carpark: L.icon({
-                iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzAwZmYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCIgZmlsbD0iIzAwZmYwMCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+PC9zdmc+',
-                iconSize: [12, 12],
-                iconAnchor: [6, 6],
-                popupAnchor: [0, -6]
-            }),
-            taxiStop: L.icon({
-                iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2ZmYWEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCIgZmlsbD0iI2ZmYWEwMCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+PC9zdmc+',
-                iconSize: [12, 12],
-                iconAnchor: [6, 6],
-                popupAnchor: [0, -6]
-            }),
-            trafficCamera: L.icon({
-                iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzk5MDBmZiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCIgZmlsbD0iIzk5MDBmZiIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+PC9zdmc+',
-                iconSize: [14, 14],
-                iconAnchor: [7, 7],
-                popupAnchor: [0, -7]
-            }),
-            routeMarker: L.icon({
-                iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iNDUiIHZpZXdCb3g9IjAgMCAzMCA0NSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTUgMEMxMC4wMjk0IDAgNiA0LjAyOTQzIDYgOUM2IDEzLjk3MDYgMTUgMjcgMTUgMjdDMTUgMjcgMjQgMTMuOTcwNiAyNCA5QzI0IDQuMDI5NDMgMTkuOTcwNiAwIDE1IDBaIiBmaWxsPSIjRkYwMDAwIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiLz48Y2lyY2xlIGN4PSIxNSIgY3k9IjkiIHI9IjUiIGZpbGw9IndoaXRlIi8+PC9zdmc+',
-                iconSize: [30, 45],
-                iconAnchor: [15, 45],
-                popupAnchor: [0, -45]
-            })
+        const state = {
+            routeMode: 'driving',
+            routingAlgo: 'osrm',
+            routeMarkers: { from: null, to: null },
+            routingControl: null,
+            neo4jRouteLines: [],
+            allBusStops: [],
+            liveAlerts: { train: [], vms: [], incidents: [] }
         };
 
-        // Incident emoji icon generator
-        function getIncidentIcon(typeRaw) {
-            const type = (typeRaw || "").toLowerCase();
-            let emoji = "⚠️";
-
-            if (type.includes("accident")) emoji = "💥";
-            else if (type.includes("breakdown")) emoji = "🚗";
-            else if (type.includes("roadwork")) emoji = "🚧";
-            else if (type.includes("flood")) emoji = "🌊";
-            else if (type.includes("traffic light")) emoji = "🚦";
-            else if (type.includes("obstacle")) emoji = "⚠️";
-
-            return L.divIcon({
-                html: `<div style="font-size:22px;">${emoji}</div>`,
-                iconSize: [22, 22],
-                iconAnchor: [11, 11],
-            });
-        }
-
-
-        // Tab switching
-        function switchTab(tab) {
-            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-
-            if (tab === 'layers') {
-                document.querySelector('.tab-button:first-child').classList.add('active');
-                document.getElementById('layers-tab').classList.add('active');
-            } else if (tab === 'route') {
-                document.querySelector('.tab-button:last-child').classList.add('active');
-                document.getElementById('route-tab').classList.add('active');
+        // Icon Generators
+        const icons = {
+            create: (color, size=[12,12], anchor=[6,6]) => L.icon({
+                iconUrl: `data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iJHtjb2xvcn0iIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIGZpbGw9IiR7Y29sb3J9IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=`.replace('#', '%23'),
+                iconSize: size, iconAnchor: anchor, popupAnchor: [0, -anchor[1]]
+            }),
+            routeStart: L.icon({
+                iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iNDUiIHZpZXdCb3g9IjAgMCAzMCA0NSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTUgMEMxMC4wMjk0IDAgNiA0LjAyOTQzIDYgOUM2IDEzLjk3MDYgMTUgMjcgMTUgMjdDMTUgMjcgMjQgMTMuOTcwNiAyNCA5QzI0IDQuMDI5NDMgMTkuOTcwNiAwIDE1IDBaIiBmaWxsPSIjRkYwMDAwIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiLz48Y2lyY2xlIGN4PSIxNSIgY3k9IjkiIHI9IjUiIGZpbGw9IndoaXRlIi8+PC9zdmc+',
+                iconSize: [30, 45], iconAnchor: [15, 45], popupAnchor: [0, -45]
+            }),
+            routeEnd: L.icon({
+                iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iNDUiIHZpZXdCb3g9IjAgMCAzMCA0NSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTUgMEMxMC4wMjk0IDAgNiA0LjAyOTQzIDYgOUM2IDEzLjk3MDYgMTUgMjcgMTUgMjdDMTUgMjcgMjQgMTMuOTcwNiAyNCA5QzI0IDQuMDI5NDMgMTkuOTcwNiAwIDE1IDBaIiBmaWxsPSIjMDBGRjAwIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiLz48Y2lyY2xlIGN4PSIxNSIgY3k9IjkiIHI9IjUiIGZpbGw9IndoaXRlIi8+PC9zdmc+',
+                iconSize: [30, 45], iconAnchor: [15, 45], popupAnchor: [0, -45]
+            }),
+            getIncident: (typeRaw) => {
+                const type = (typeRaw || "").toLowerCase();
+                let emoji = "⚠️";
+                if (type.includes("accident")) emoji = "💥";
+                else if (type.includes("breakdown")) emoji = "🚗";
+                else if (type.includes("roadwork")) emoji = "🚧";
+                else if (type.includes("flood")) emoji = "🌊";
+                else if (type.includes("traffic light")) emoji = "🚦";
+                return L.divIcon({ html: `<div style="font-size:22px;">${emoji}</div>`, iconSize: [22, 22], iconAnchor: [11, 11] });
             }
-        }
+        };
 
-        // Route planning functions
-        function setRouteMode(mode) {
-            routeMode = mode;
-            document.querySelectorAll('.mode-button').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-        }
+        // Static Icons
+        icons.busStop = icons.create('#3388ff');
+        icons.trainStation = icons.create('#ff0000', [14, 14], [7, 7]);
+        icons.carpark = icons.create('#00ff00');
+        icons.taxiStop = icons.create('#ffaa00');
+        icons.trafficCamera = icons.create('#9900ff', [14, 14], [7, 7]);
 
-        function setRoutingAlgo(algo) {
-            routingAlgo = algo;
-            document.querySelectorAll('#algo-osrm, #algo-neo4j').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(`algo-${algo}`).classList.add('active');
-        }
-
-        // Map click for route selection
-        let selectingRoutePoint = null;
-
-        map.on('click', function (e) {
-            if (document.getElementById('route-tab').classList.contains('active')) {
-                const lat = e.latlng.lat.toFixed(6);
-                const lng = e.latlng.lng.toFixed(6);
-
-                // Determine which input to fill
-                const fromInput = document.getElementById('route-from');
-                const toInput = document.getElementById('route-to');
-
-                if (!fromInput.value) {
-                    fromInput.value = `${lat}, ${lng}`;
-                    if (routeMarkers.from) map.removeLayer(routeMarkers.from);
-                    routeMarkers.from = L.marker([lat, lng], { icon: icons.routeMarker }).addTo(map);
-                    routeMarkers.from.bindPopup('Start Point').openPopup();
-                } else if (!toInput.value) {
-                    toInput.value = `${lat}, ${lng}`;
-                    if (routeMarkers.to) map.removeLayer(routeMarkers.to);
-                    routeMarkers.to = L.marker([lat, lng], {
-                        icon: L.icon({
-                            iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iNDUiIHZpZXdCb3g9IjAgMCAzMCA0NSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTUgMEMxMC4wMjk0IDAgNiA0LjAyOTQzIDYgOUM2IDEzLjk3MDYgMTUgMjcgMTUgMjdDMTUgMjcgMjQgMTMuOTcwNiAyNCA5QzI0IDQuMDI5NDMgMTkuOTcwNiAwIDE1IDBaIiBmaWxsPSIjMDBGRjAwIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiLz48Y2lyY2xlIGN4PSIxNSIgY3k9IjkiIHI9IjUiIGZpbGw9IndoaXRlIi8+PC9zdmc+',
-                            iconSize: [30, 45],
-                            iconAnchor: [15, 45]
-                        })
-                    }).addTo(map);
-                    routeMarkers.to.bindPopup('Destination').openPopup();
-
-                    // Find nearby stops
-                    findNearbyStops(lat, lng);
-                }
-            }
-        });
-
-        async function planRoute() {
-            const fromValue = document.getElementById('route-from').value;
-            const toValue = document.getElementById('route-to').value;
-            
-            if (!fromValue || !toValue) {
-                alert('Please select both starting point and destination');
-                return;
-            }
-            
-            // Parse coordinates
-            const from = fromValue.split(',').map(v => parseFloat(v.trim()));
-            const to = toValue.split(',').map(v => parseFloat(v.trim()));
-            
-            if (from.length !== 2 || to.length !== 2) {
-                alert('Invalid coordinates format');
-                return;
-            }
-            
-            // Clear existing route
-            if (routingControl) {
-                map.removeControl(routingControl);
-                routingControl = null;
-            }
-            
-            // Route based on selected algorithm
-            if (routingAlgo === 'osrm') {
-                planRouteOSRM(from, to);
-            } else if (routingAlgo === 'neo4j') {
-                await planRouteNeo4j(from, to);
-            }
-        }
-
-        function planRouteOSRM(from, to) {
-            // Create routing control
-            routingControl = L.Routing.control({
-                waypoints: [
-                    L.latLng(from[0], from[1]),
-                    L.latLng(to[0], to[1])
-                ],
-                routeWhileDragging: true,
-                showAlternatives: true,
-                altLineOptions: {
-                    styles: [
-                        {color: 'black', opacity: 0.15, weight: 9},
-                        {color: 'white', opacity: 0.8, weight: 6},
-                        {color: 'blue', opacity: 0.5, weight: 2}
-                    ]
+        /**
+         * ============================================================================
+         * 2. MAIN APPLICATION LOGIC
+         * ============================================================================
+         */
+        const app = {
+            // --- UI Interaction Handlers ---
+            ui: {
+                switchTab: (tab) => {
+                    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                    const btnIndex = tab === 'layers' ? 0 : 1;
+                    document.querySelectorAll('.tab-button')[btnIndex].classList.add('active');
+                    document.getElementById(`${tab}-tab`).classList.add('active');
                 },
-                lineOptions: {
-                    styles: [{color: '#667eea', weight: 5}]
-                }
-            }).addTo(map);
-            
-            // Show route info
-            routingControl.on('routesfound', function(e) {
-                const routes = e.routes;
-                const summary = routes[0].summary;
-                const distance = (summary.totalDistance / 1000).toFixed(2);
-                const duration = Math.round(summary.totalTime / 60);
                 
-                document.getElementById('route-info').style.display = 'block';
-                document.getElementById('route-details').innerHTML = `
-                    <div class="route-detail">
-                        <span>Distance:</span> <strong>${distance} km</strong>
-                    </div>
-                    <div class="route-detail">
-                        <span>Duration:</span> <strong>${duration} mins</strong>
-                    </div>
-                    <div class="route-detail">
-                        <span>Mode:</span> <strong>${routeMode}</strong>
-                    </div>
-                    <div class="route-detail">
-                        <span>Algorithm:</span> <strong>OSRM</strong>
-                    </div>
-                `;
-            });
-        }
+                showError: (msg) => {
+                    const errorDiv = document.getElementById('error-message');
+                    errorDiv.innerHTML = `<div class="error">${msg}</div>`;
+                    setTimeout(() => errorDiv.innerHTML = '', 5000);
+                },
 
-        async function planRouteNeo4j(from, to) {
-            try {
-                document.getElementById('route-info').style.display = 'block';
-                document.getElementById('route-details').innerHTML = '<div>🔄 Calculating optimal route with live traffic data...</div>';
-                
-                const response = await fetch(`${API_BASE_URL}/api/routing/optimize?start_lat=${from[0]}&start_lon=${from[1]}&end_lat=${to[0]}&end_lon=${to[1]}&vehicle_type=car`);
-                
-                if (!response.ok) {
-                    throw new Error('Routing failed');
-                }
-                
-                const data = await response.json();
-                
-                if (!data.routes || data.routes.length === 0) {
-                    throw new Error('No route found');
-                }
-                
-                const route = data.routes[0];
-                
-                // Display route info
-                document.getElementById('route-details').innerHTML = `
-                    <div class="route-detail">
-                        <span>🚗 ${route.name}</span>
-                    </div>
-                    <div class="route-detail">
-                        <span>Distance:</span> <strong>${route.distance_km} km</strong>
-                    </div>
-                    <div class="route-detail">
-                        <span>Duration:</span> <strong>${route.estimated_duration_minutes} mins</strong>
-                    </div>
-                `;
+                updateMarquee: () => {
+                    const marquee = document.getElementById('alert-marquee');
+                    if (!marquee) return;
+                    let items = [];
 
-                if (route.directions && route.directions.length > 0) {
-                    const directionsHtml = route.directions.map((dir, idx) => {
-                        // Determine icon based on instruction
-                        let icon = '➡️';
-                        if (dir.includes('Sharp left')) icon = '↙️';
-                        else if (dir.includes('Turn left') || dir.includes('left')) icon = '⬅️';
-                        else if (dir.includes('Bear left')) icon = '↖️';
-                        else if (dir.includes('Sharp right')) icon = '↘️';
-                        else if (dir.includes('Turn right') || dir.includes('right')) icon = '➡️';
-                        else if (dir.includes('Bear right')) icon = '↗️';
-                        else if (dir.includes('U-turn')) icon = '↩️';
-                        else if (dir.includes('Continue') || dir.includes('Head')) icon = '⬆️';
-                        else if (dir.includes('arrived') || dir.includes('destination')) icon = '🏁';
+                    state.liveAlerts.vms.forEach(v => {
+                        const msg = (v.Message || v.message || '').trim().replace(/,/g, ' ');
+                        if (msg) items.push(`<span class="alert-item">📢 ${msg}</span>`);
+                    });
+                    state.liveAlerts.train.forEach(a => {
+                        if (a.content) items.push(`<span class="alert-item">🚇 ${a.line || ''}: ${a.content}</span>`);
+                    });
+                    state.liveAlerts.incidents.forEach(i => {
+                        if (i.message) items.push(`<span class="alert-item">⚠️ ${i.type}: ${i.message}</span>`);
+                    });
 
-                        return `
-                            <div style="padding: 8px; border-bottom: 1px solid #eee; display: flex; align-items: start;">
-                                <span style="font-size: 20px; margin-right: 10px;">${icon}</span>
-                                <span style="flex: 1;">${dir}</span>
-                            </div>
-                        `;
-                    }).join('');
+                    if (items.length === 0) {
+                        marquee.innerHTML = 'No active alerts.';
+                        marquee.style.animation = 'none';
+                        return;
+                    }
+                    marquee.innerHTML = items.join(' &nbsp;&nbsp;&nbsp; ') + ' &nbsp;&nbsp;&nbsp; ' + items.join(' &nbsp;&nbsp;&nbsp; ');
+                    const duration = Math.max(12, items.length * 6);
+                    marquee.style.animation = `scrollAlerts ${duration}s linear infinite`;
+                }
+            },
+
+            // --- Data Fetching & Processing ---
+            data: {
+                fetch: async (baseUrl, endpoint, limit) => {
+                    try {
+                        const url = limit ? `${baseUrl}${endpoint}?limit=${limit}` : `${baseUrl}${endpoint}`;
+                        const response = await fetch(url);
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        return await response.json();
+                    } catch (error) {
+                        console.error(`Error fetching ${endpoint}:`, error);
+                        app.ui.showError(`Failed to load data from ${endpoint}`);
+                        return limit ? [] : {};
+                    }
+                },
+
+                refreshAll: async () => {
+                    document.getElementById('loading').style.display = 'block';
+                    try {
+                        // Load all data in parallel using allSettled so one failure doesn't block others
+                        await Promise.allSettled([
+                            app.data.loadLayer(CONFIG.API.SQL, '/api/bus-stops', layers.busStops, icons.busStop, 'bus-stops-count', CONFIG.LIMITS.BUS_STOPS),
+                            app.data.loadLayer(CONFIG.API.SQL, '/api/train-stations', layers.trainStations, icons.trainStation, 'train-stations-count'),
+                            app.data.loadLayer(CONFIG.API.SQL, '/api/carparks', layers.carparks, icons.carpark, 'carparks-count'),
+                            app.data.loadLayer(CONFIG.API.SQL, '/api/taxi-stops', layers.taxiStops, icons.taxiStop, 'taxi-stops-count'),
+                            app.data.loadCameras(),
+                            app.data.loadIncidents(),
+                            app.data.loadVMS(),
+                            app.data.loadTrainAlerts(),
+                            app.data.loadStatistics(),
+                            app.data.loadCacheStats()
+                        ]);
+                        app.ui.updateMarquee();
+                    } finally {
+                        document.getElementById('loading').style.display = 'none';
+                    }
+                },
+
+                // Generic Point Layer Loader
+                loadLayer: async (baseUrl, endpoint, layerGroup, icon, countId, limit=1000) => {
+                    const data = await app.data.fetch(baseUrl, endpoint, limit);
+                    layerGroup.clearLayers();
                     
-                    document.getElementById('route-details').innerHTML += `
-                        <div style="margin-top: 15px;">
-                            <strong>Turn-by-Turn Directions:</strong>
-                            <div style="max-height: 300px; overflow-y: auto; margin-top: 10px; border: 1px solid #ddd; border-radius: 4px; background: white;">
-                                ${directionsHtml}
-                            </div>
-                        </div>
-                    `;
-                }
-                
-                // Draw route with color-coded congestion
-                if (route.path_coordinates && route.path_coordinates.length > 0) {
-                    
-                    // If we have segment details, color-code by speed
-                    if (route.segment_details && route.segment_details.length > 0) {
+                    if(endpoint.includes('bus-stops')) state.allBusStops = data; // Save for routing logic
+
+                    data.forEach(item => {
+                        const lat = item.Latitude || (item.Location ? parseFloat(item.Location.split(' ')[0]) : null);
+                        const lng = item.Longitude || (item.Location ? parseFloat(item.Location.split(' ')[1]) : null);
                         
-                        // Draw each segment with color based on speed
-                        for (let i = 0; i < route.segment_details.length; i++) {
-                            const segment = route.segment_details[i];
-                            const speed = segment.speed;
+                        if (lat && lng) {
+                            const name = item.Description || item.StationName || item.Development || "Location";
+                            const code = item.BusStopCode || item.StationCode || item.CarParkID || item.TaxiCode || "";
                             
-                            // Determine color based on speed
-                            let color;
-                            if (speed < 20) {
-                                color = '#ff0000';  // Red - Heavy congestion
-                            } else if (speed < 40) {
-                                color = '#ff9800';  // Orange - Moderate
-                            } else if (speed < 60) {
-                                color = '#ffeb3b';  // Yellow - Light
-                            } else {
-                                color = '#4caf50';  // Green - Free flow
+                            let popup = `<b>${name}</b><br>${code ? 'Code: ' + code : ''}`;
+                            if(item.AvailableLots !== undefined) {
+                                popup += `<br>Available: ${item.AvailableLots} ${item.LotType || ''} lots`;
+                            }
+
+                            L.marker([lat, lng], { icon: icon }).bindPopup(popup).addTo(layerGroup);
+                        }
+                    });
+                    if(document.getElementById(countId)) document.getElementById(countId).textContent = data.length;
+                },
+
+                loadCameras: async () => {
+                    const data = await app.data.fetch(CONFIG.API.SQL, '/api/traffic-cameras/live');
+                    layers.trafficCameras.clearLayers();
+                    data.forEach(cam => {
+                        L.marker([cam.Latitude, cam.Longitude], { icon: icons.trafficCamera })
+                            .bindPopup(`<b>Camera ${cam.CameraID}</b><br><img src="${cam.ImageLink}" style="max-width:200px" onerror="this.style.display='none'">`)
+                            .addTo(layers.trafficCameras);
+                    });
+                    document.getElementById('traffic-cameras-count').textContent = data.length;
+                },
+
+                loadIncidents: async () => {
+                    const json = await app.data.fetch(CONFIG.API.NOSQL, '/api/traffic/incidents');
+                    const data = json.data || [];
+                    state.liveAlerts.incidents = data;
+                    layers.incidents.clearLayers();
+                    data.forEach(inc => {
+                        if (inc.latitude && inc.longitude) {
+                            L.marker([inc.latitude, inc.longitude], { icon: icons.getIncident(inc.type) })
+                                .bindPopup(`<b>${inc.type}</b><br>${inc.message}`)
+                                .addTo(layers.incidents);
+                        }
+                    });
+                    document.getElementById("incidents-count").textContent = data.length;
+                },
+
+                loadVMS: async () => {
+                    const json = await app.data.fetch(CONFIG.API.NOSQL, '/api/vms');
+                    state.liveAlerts.vms = json.data || [];
+                },
+
+                loadTrainAlerts: async () => {
+                    const json = await app.data.fetch(CONFIG.API.NOSQL, '/api/train/alerts');
+                    state.liveAlerts.train = json.data || [];
+                },
+
+                loadStatistics: async () => {
+                    const stats = await app.data.fetch(CONFIG.API.SQL, '/api/stats');
+                    if (!stats) return;
+                    
+                    const grid = document.getElementById('stats-grid');
+                    grid.innerHTML = '';
+                    const items = [
+                        { l: 'Bus Stops', v: stats.total_bus_stops },
+                        { l: 'Train Stations', v: stats.total_train_stations },
+                        { l: 'Carparks', v: stats.total_carparks },
+                        { l: 'Taxi Stands', v: stats.total_taxi_stops },
+                        { l: 'Traffic Cameras', v: stats.total_traffic_cameras },
+                        { l: 'Bus Routes', v: stats.total_bus_routes }
+                    ];
+                    items.forEach(i => {
+                        grid.innerHTML += `<div class="stat-card"><div class="number">${(i.v || 0).toLocaleString()}</div><div class="label">${i.l}</div></div>`;
+                    });
+                },
+
+                loadCacheStats: async () => {
+                    const json = await app.data.fetch(CONFIG.API.NOSQL, '/api/cache/stats');
+                    const container = document.getElementById("cache-stats");
+                    container.innerHTML = "";
+                    const stats = json.cacheStats || {};
+                    if (Object.keys(stats).length === 0) {
+                        container.innerHTML = "<div>No cache data</div>";
+                        return;
+                    }
+                    Object.keys(stats).forEach(key => {
+                        const s = stats[key];
+                        container.innerHTML += `
+                            <div class="cache-card">
+                                <div class="label">${key.replace(/_/g, " ")}</div>
+                                <div class="value">${s.totalRecords} records</div>
+                                <div class="meta">Age: ${s.ageSeconds ?? "N/A"}s</div>
+                            </div>`;
+                    });
+                },
+
+                forceRefresh: async () => { await app.data.refreshAll(); },
+                clearCache: async () => {
+                    await fetch(`${CONFIG.API.NOSQL}/api/cache/clear`, { method: "DELETE" });
+                    app.data.loadCacheStats();
+                }
+            },
+
+            // --- Routing Logic ---
+            routing: {
+                setMode: (mode) => {
+                    state.routeMode = mode;
+                    document.querySelectorAll('.mode-button').forEach(btn => btn.classList.remove('active'));
+                    event.target.classList.add('active');
+                },
+
+                setAlgo: (algo) => {
+                    state.routingAlgo = algo;
+                    document.querySelectorAll('#algo-osrm, #algo-neo4j').forEach(btn => btn.classList.remove('active'));
+                    document.getElementById(`algo-${algo}`).classList.add('active');
+                },
+
+                clearRoute: () => {
+                    if (state.routingControl) map.removeControl(state.routingControl);
+                    state.neo4jRouteLines.forEach(l => map.removeLayer(l));
+                    state.neo4jRouteLines = [];
+                    
+                    if (state.routeMarkers.from) map.removeLayer(state.routeMarkers.from);
+                    if (state.routeMarkers.to) map.removeLayer(state.routeMarkers.to);
+                    state.routeMarkers = { from: null, to: null };
+
+                    document.getElementById('route-from').value = '';
+                    document.getElementById('route-to').value = '';
+                    document.getElementById('route-info').style.display = 'none';
+                    document.getElementById('nearby-stops-container').style.display = 'none';
+                },
+
+                planRoute: async () => {
+                    const fromStr = document.getElementById('route-from').value;
+                    const toStr = document.getElementById('route-to').value;
+                    if (!fromStr || !toStr) return alert('Select start and end points');
+
+                    const from = fromStr.split(',').map(Number);
+                    const to = toStr.split(',').map(Number);
+
+                    // Clear previous
+                    if (state.routingControl) {
+                        map.removeControl(state.routingControl);
+                        state.routingControl = null;
+                    }
+
+                    if (state.routingAlgo === 'osrm') {
+                        app.routing.runOSRM(from, to);
+                    } else {
+                        await app.routing.runNeo4j(from, to);
+                    }
+                },
+
+                runOSRM: (from, to) => {
+                    state.routingControl = L.Routing.control({
+                        waypoints: [L.latLng(from), L.latLng(to)],
+                        lineOptions: { styles: [{color: '#667eea', weight: 5}] }
+                    }).addTo(map);
+
+                    state.routingControl.on('routesfound', (e) => {
+                        const s = e.routes[0].summary;
+                        app.routing.showDetails((s.totalDistance/1000).toFixed(2), Math.round(s.totalTime/60), 'OSRM');
+                    });
+                },
+
+                runNeo4j: async (from, to) => {
+                    const infoDiv = document.getElementById('route-info');
+                    const detailDiv = document.getElementById('route-details');
+                    infoDiv.style.display = 'block';
+                    detailDiv.innerHTML = '<div>🔄 Calculating route...</div>';
+
+                    try {
+                        const res = await fetch(`${CONFIG.API.SQL}/api/routing/optimize?start_lat=${from[0]}&start_lon=${from[1]}&end_lat=${to[0]}&end_lon=${to[1]}&vehicle_type=car`);
+                        if (!res.ok) throw new Error('Routing failed');
+                        const json = await res.json();
+                        if (!json.routes?.length) throw new Error('No route found');
+
+                        const route = json.routes[0];
+                        app.routing.showDetails(route.distance_km, route.estimated_duration_minutes, route.name);
+                        app.routing.renderDirections(route.directions);
+                        app.routing.drawNeo4jPath(route);
+                    } catch (err) {
+                        detailDiv.innerHTML = `<div class="error">${err.message}</div>`;
+                    }
+                },
+
+                showDetails: (dist, time, name) => {
+                    document.getElementById('route-info').style.display = 'block';
+                    document.getElementById('route-details').innerHTML = `
+                        <div class="route-detail"><span>🚗 Route:</span> <strong>${name}</strong></div>
+                        <div class="route-detail"><span>Distance:</span> <strong>${dist} km</strong></div>
+                        <div class="route-detail"><span>Duration:</span> <strong>${time} mins</strong></div>
+                    `;
+                },
+
+                renderDirections: (directions) => {
+                    if (!directions?.length) return;
+                    const html = directions.map(dir => {
+                        let icon = '➡️';
+                        if (dir.toLowerCase().includes('left')) icon = '⬅️';
+                        if (dir.toLowerCase().includes('right')) icon = '➡️';
+                        if (dir.toLowerCase().includes('u-turn')) icon = '↩️';
+                        return `<div style="padding: 5px; border-bottom: 1px solid #eee;">${icon} ${dir}</div>`;
+                    }).join('');
+                    document.getElementById('route-details').innerHTML += `
+                        <div style="margin-top: 10px; max-height: 200px; overflow-y: auto; background: white; padding: 5px;">
+                            <strong>Directions:</strong><br>${html}
+                        </div>`;
+                },
+
+                drawNeo4jPath: (route) => {
+                    // Preserved specific traffic speed coloring
+                    if (route.path_coordinates && route.path_coordinates.length > 0) {
+                        
+                        // If we have segment details, apply color logic
+                        if (route.segment_details && route.segment_details.length > 0) {
+                            for (let i = 0; i < route.segment_details.length; i++) {
+                                const segment = route.segment_details[i];
+                                const speed = segment.speed;
+                                let color = '#4caf50'; // Green (Fast)
+                                
+                                if (speed < 20) color = '#ff0000';      // Red (Jam)
+                                else if (speed < 40) color = '#ff9800'; // Orange
+                                else if (speed < 60) color = '#ffeb3b'; // Yellow
+
+                                const line = L.polyline([route.path_coordinates[i], route.path_coordinates[i + 1]], {
+                                    color: color, weight: 6, opacity: 0.8
+                                }).addTo(map).bindPopup(`<b>${segment.road_name}</b><br>Speed: ${Math.round(speed)} km/h`);
+                                state.neo4jRouteLines.push(line);
                             }
                             
-                            // Draw segment
-                            const segmentLine = L.polyline([
-                                route.path_coordinates[i],
-                                route.path_coordinates[i + 1]
-                            ], {
-                                color: color,
-                                weight: 6,
-                                opacity: 0.8
-                            }).addTo(map);
-                            
-                            // Add popup with segment info
-                            segmentLine.bindPopup(`
-                                <b>${segment.road_name}</b><br>
-                                Speed: ${Math.round(speed)} km/h<br>
-                                Distance: ${segment.distance.toFixed(2)} km
-                            `);
-                            
-                            if (!window.neo4jRouteLines) window.neo4jRouteLines = [];
-                            window.neo4jRouteLines.push(segmentLine);
+                            // Re-add Traffic Legend Control
+                            const legend = L.control({position: 'bottomright'});
+                            legend.onAdd = function() {
+                                const div = L.DomUtil.create('div', 'traffic-legend');
+                                div.innerHTML = `<div style="background: white; padding: 10px; border-radius: 5px;"><b>Traffic Speed</b><br><i style="background: #4caf50; width: 20px; height: 3px; display: inline-block;"></i> > 60 km/h<br><i style="background: #ffeb3b; width: 20px; height: 3px; display: inline-block;"></i> 40-60 km/h<br><i style="background: #ff9800; width: 20px; height: 3px; display: inline-block;"></i> 20-40 km/h<br><i style="background: #ff0000; width: 20px; height: 3px; display: inline-block;"></i> < 20 km/h</div>`;
+                                return div;
+                            };
+                            legend.addTo(map);
+                            state.neo4jRouteLines.push(legend);
+
+                        } else {
+                            // Fallback: Single colored line if no speed data
+                            const line = L.polyline(route.path_coordinates, { color: '#ff6b6b', weight: 5 }).addTo(map);
+                            state.neo4jRouteLines.push(line);
                         }
                         
-                        // Add legend
-                        const legend = L.control({position: 'bottomright'});
-                        legend.onAdd = function() {
-                            const div = L.DomUtil.create('div', 'traffic-legend');
-                            div.innerHTML = `
-                                <div style="background: white; padding: 10px; border-radius: 5px;">
-                                    <b>Traffic Speed</b><br>
-                                    <i style="background: #4caf50; width: 20px; height: 3px; display: inline-block;"></i> > 60 km/h<br>
-                                    <i style="background: #ffeb3b; width: 20px; height: 3px; display: inline-block;"></i> 40-60 km/h<br>
-                                    <i style="background: #ff9800; width: 20px; height: 3px; display: inline-block;"></i> 20-40 km/h<br>
-                                    <i style="background: #ff0000; width: 20px; height: 3px; display: inline-block;"></i> < 20 km/h
-                                </div>
-                            `;
-                            return div;
-                        };
-                        legend.addTo(map);
-                        
-                        if (!window.neo4jRouteLines) window.neo4jRouteLines = [];
-                        window.neo4jRouteLines.push(legend);
-                        
-                    } else {
-                        // Fallback: single colored line
-                        const routeLine = L.polyline(route.path_coordinates, {
-                            color: '#ff6b6b',
-                            weight: 5,
-                            opacity: 0.8
-                        }).addTo(map);
-                        
-                        if (!window.neo4jRouteLines) window.neo4jRouteLines = [];
-                        window.neo4jRouteLines.push(routeLine);
+                        map.fitBounds(L.latLngBounds(route.path_coordinates));
                     }
-                    
-                    // Fit map to route
-                    const bounds = L.latLngBounds(route.path_coordinates);
-                    map.fitBounds(bounds, { padding: [50, 50] });
                 }
-                
-            } catch (error) {
-                console.error('Neo4j routing error:', error);
-                document.getElementById('route-details').innerHTML = `
-                    <div style="color: #dc3545;">
-                        Failed to calculate route using Neo4j.<br>
-                        <small>${error.message}</small><br>
-                        <button onclick="routingAlgo='osrm'; setRoutingAlgo('osrm'); planRoute();" style="margin-top: 10px;">
-                            Try OSRM instead
-                        </button>
-                    </div>
-                `;
-            }
-        }
+            },
 
-        function clearRoute() {
-            // Clear OSRM routing control
-            if (routingControl) {
-                map.removeControl(routingControl);
-                routingControl = null;
-            }
-            
-            // Clear Neo4j route lines
-            if (window.neo4jRouteLines) {
-                window.neo4jRouteLines.forEach(line => map.removeLayer(line));
-                window.neo4jRouteLines = [];
-            }
-            
-            // Clear markers
-            if (routeMarkers.from) {
-                map.removeLayer(routeMarkers.from);
-                routeMarkers.from = null;
-            }
-            if (routeMarkers.to) {
-                map.removeLayer(routeMarkers.to);
-                routeMarkers.to = null;
-            }
-            
-            // Clear inputs
-            document.getElementById('route-from').value = '';
-            document.getElementById('route-to').value = '';
-            document.getElementById('route-info').style.display = 'none';
-            document.getElementById('nearby-stops-container').style.display = 'none';
-        }
-
-        function findNearbyStops(lat, lng) {
-            const nearby = allBusStops
-                .map(stop => {
-                    const distance = calculateDistance(lat, lng, stop.Latitude, stop.Longitude);
-                    return { ...stop, distance };
-                })
-                .sort((a, b) => a.distance - b.distance)
-                .slice(0, 5);
-
-            const container = document.getElementById('nearby-stops');
-            container.innerHTML = nearby.map(stop => `
-                <div class="stop-item" onclick="focusOnStop(${stop.Latitude}, ${stop.Longitude})">
-                    <strong>${stop.Description}</strong><br>
-                    <small>${stop.RoadName} - ${stop.distance.toFixed(0)}m away</small>
-                </div>
-            `).join('');
-
-            document.getElementById('nearby-stops-container').style.display = 'block';
-        }
-
-        function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371e3; // Earth radius in meters
-            const φ1 = lat1 * Math.PI / 180;
-            const φ2 = lat2 * Math.PI / 180;
-            const Δφ = (lat2 - lat1) * Math.PI / 180;
-            const Δλ = (lon2 - lon1) * Math.PI / 180;
-
-            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-                Math.cos(φ1) * Math.cos(φ2) *
-                Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-            return R * c;
-        }
-
-        function focusOnStop(lat, lng) {
-            map.setView([lat, lng], 17);
-        }
-
-        // Fetch and display data
-        async function fetchData(endpoint, limit = 1000) {
-            try {
-                const response = await fetch(`${API_BASE_URL}${endpoint}?limit=${limit}`);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                return await response.json();
-            } catch (error) {
-                console.error(`Error fetching ${endpoint}:`, error);
-                showError(`Failed to load data from ${endpoint}`);
-                return [];
-            }
-        }
-
-        async function loadBusStops() {
-            const data = await fetchData('/api/bus-stops', 5000);
-            layers.busStops.clearLayers();
-            allBusStops = data;
-
-            data.forEach(stop => {
-                const marker = L.marker([stop.Latitude, stop.Longitude], { icon: icons.busStop })
-                    .bindPopup(`
-                        <b>Bus Stop: ${stop.BusStopCode}</b><br>
-                        ${stop.Description}<br>
-                        <i>${stop.RoadName}</i>
-                    `);
-                layers.busStops.addLayer(marker);
-            });
-
-            document.getElementById('bus-stops-count').textContent = data.length;
-            return data.length;
-        }
-
-        async function loadTrainStations() {
-            const data = await fetchData('/api/train-stations');
-            layers.trainStations.clearLayers();
-
-            data.forEach(station => {
-                const marker = L.marker([station.Latitude, station.Longitude], { icon: icons.trainStation })
-                    .bindPopup(`
-                        <b>${station.StationName}</b><br>
-                        Code: ${station.StationCode}<br>
-                        Line: ${station.Line}
-                    `);
-                layers.trainStations.addLayer(marker);
-            });
-
-            document.getElementById('train-stations-count').textContent = data.length;
-            return data.length;
-        }
-
-        async function loadCarparks() {
-            const data = await fetchData('/api/carparks');
-            layers.carparks.clearLayers();
-
-            data.forEach(carpark => {
-                const coords = carpark.Location.split(' ');
-                if (coords.length === 2) {
-                    const marker = L.marker([parseFloat(coords[0]), parseFloat(coords[1])], { icon: icons.carpark })
-                        .bindPopup(`
-                            <b>${carpark.Development}</b><br>
-                            Area: ${carpark.Area}<br>
-                            Available: ${carpark.AvailableLots} ${carpark.LotType} lots
-                        `);
-                    layers.carparks.addLayer(marker);
+            // --- HELPERS ---
+            utils: {
+                calculateDistance: (lat1, lon1, lat2, lon2) => {
+                    const R = 6371e3; // Earth radius (m)
+                    const φ1 = lat1 * Math.PI/180, φ2 = lat2 * Math.PI/180;
+                    const Δφ = (lat2-lat1) * Math.PI/180, Δλ = (lon2-lon1) * Math.PI/180;
+                    const a = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2) * Math.sin(Δλ/2)**2;
+                    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                },
+                findNearbyStops: (lat, lng) => {
+                    const nearby = state.allBusStops
+                        .map(stop => ({ ...stop, dist: app.utils.calculateDistance(lat, lng, stop.Latitude, stop.Longitude) }))
+                        .sort((a, b) => a.dist - b.dist)
+                        .slice(0, 5);
+                    const container = document.getElementById('nearby-stops');
+                    container.innerHTML = nearby.map(stop => `<div class="stop-item" onclick="map.setView([${stop.Latitude}, ${stop.Longitude}], 17)"><strong>${stop.Description}</strong><br><small>${stop.RoadName} - ${stop.dist.toFixed(0)}m away</small></div>`).join('');
+                    document.getElementById('nearby-stops-container').style.display = 'block';
                 }
-            });
-
-            document.getElementById('carparks-count').textContent = data.length;
-            return data.length;
-        }
-
-        async function loadTaxiStops() {
-            const data = await fetchData('/api/taxi-stops');
-            layers.taxiStops.clearLayers();
-
-            data.forEach(stop => {
-                const marker = L.marker([stop.Latitude, stop.Longitude], { icon: icons.taxiStop })
-                    .bindPopup(`<b>Taxi Stand</b><br>Code: ${stop.TaxiCode}`);
-                layers.taxiStops.addLayer(marker);
-            });
-
-            document.getElementById('taxi-stops-count').textContent = data.length;
-            return data.length;
-        }
-
-        async function loadTrafficCameras() {
-            const data = await fetchData('/api/traffic-cameras/live');
-            layers.trafficCameras.clearLayers();
-
-            data.forEach(camera => {
-                const marker = L.marker([camera.Latitude, camera.Longitude], { icon: icons.trafficCamera })
-                    .bindPopup(`
-                        <b>Traffic Camera ${camera.CameraID}</b><br>
-                        <img src="${camera.ImageLink}" 
-                             style="max-width: 250px; margin-top: 10px; border-radius: 4px;" 
-                             alt="Traffic camera view"
-                             onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjUwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjUwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iI2VlZSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjE0IiBmaWxsPSIjOTk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+SW1hZ2UgVW5hdmFpbGFibGU8L3RleHQ+PC9zdmc+'; this.onerror=null;">
-                    `);
-                layers.trafficCameras.addLayer(marker);
-            });
-
-            document.getElementById('traffic-cameras-count').textContent = data.length;
-            return data.length;
-        }
-        async function loadIncidents() {
-            const res = await fetch("http://localhost:5000/api/traffic/incidents");
-            const json = await res.json();
-            const data = json.data || [];
-
-            layers.incidents.clearLayers();
-
-            data.forEach(inc => {
-                if (!inc.latitude || !inc.longitude) return;
-
-                const marker = L.marker([inc.latitude, inc.longitude], {
-                    icon: getIncidentIcon(inc.type)
-                }).bindPopup(`
-                    <b>${inc.type}</b><br>
-                    ${inc.message}
-                `);
-
-                layers.incidents.addLayer(marker);
-            });
-
-            document.getElementById("incidents-count").textContent = data.length;
-            
-            liveAlerts.incidents = data;
-            updateMarquee();
-        }
-
-        async function loadVMS() {
-            const res = await fetch(`http://localhost:5000/api/vms`);
-            const json = await res.json();
-            const data = json.data;
-            
-            liveAlerts.vms = data;
-            updateMarquee();
-        }
-
-        async function loadTrainAlerts() {
-            const res = await fetch(`http://localhost:5000/api/train/alerts`);
-            const json = await res.json();
-            const data = json.data;
-    
-            liveAlerts.train = data;
-            updateMarquee();
-        }
-
-        async function loadStatistics() {
-            try {
-                const stats = await fetchData('/api/stats');
-
-                const statsGrid = document.getElementById('stats-grid');
-                statsGrid.innerHTML = `
-                    <div class="stat-card">
-                        <div class="number">${stats.total_bus_stops.toLocaleString()}</div>
-                        <div class="label">Bus Stops</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="number">${stats.total_train_stations.toLocaleString()}</div>
-                        <div class="label">Train Stations</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="number">${stats.total_carparks.toLocaleString()}</div>
-                        <div class="label">Carparks</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="number">${stats.total_taxi_stops.toLocaleString()}</div>
-                        <div class="label">Taxi Stands</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="number">${stats.total_traffic_cameras.toLocaleString()}</div>
-                        <div class="label">Traffic Cameras</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="number">${stats.total_bus_routes.toLocaleString()}</div>
-                        <div class="label">Bus Routes</div>
-                    </div>
-                `;
-            } catch (error) {
-                console.error('Error loading statistics:', error);
             }
-        }
-
-        function showError(message) {
-            const errorDiv = document.getElementById('error-message');
-            errorDiv.innerHTML = `<div class="error">${message}</div>`;
-            setTimeout(() => errorDiv.innerHTML = '', 5000);
-        }
-        async function fetchCache(endpoint) {
-            const res = await fetch("http://localhost:5000" + endpoint);
-            return await res.json();
-        }
-        function renderCacheStats(stats) {
-            const container = document.getElementById("cache-stats");
-            container.innerHTML = "";
-
-            if (!stats || Object.keys(stats).length === 0) {
-                container.innerHTML = "<div>No cache data</div>";
-                return;
-            }
-
-            Object.keys(stats).forEach(key => {
-                const s = stats[key];
-                const label = key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-
-                const card = document.createElement("div");
-                card.className = "cache-card";
-                card.innerHTML = `
-                    <div class="label">${label}</div>
-                    <div class="value">${s.totalRecords} records</div>
-                    <div class="meta">Last: ${s.ageSeconds ?? "N/A"}s ago</div>
-                `;
-                container.appendChild(card);
-            });
-        }
-        async function loadCacheStats() {
-            const json = await fetchCache("/api/cache/stats");
-            if (json.cacheStats) renderCacheStats(json.cacheStats);
-        }
-        async function forceDataRefresh() {
-            await loadAllData();
-            await loadCacheStats();
-        }
-        async function clearCache() {
-            await fetch("http://localhost:5000/api/cache/clear", {
-                method: "DELETE"
-            });
-            await loadCacheStats();
-        }
-        const liveAlerts = {
-            train: [],
-            vms: [],
-            incidents: [],
         };
 
-        function updateMarquee() {
-            const marquee = document.getElementById('alert-marquee');
-            if (!marquee) return;
+        // --- EVENTS ---
+        map.on('click', (e) => {
+            if (!document.getElementById('route-tab').classList.contains('active')) return;
+            const lat = e.latlng.lat.toFixed(6), lng = e.latlng.lng.toFixed(6);
+            const inputFrom = document.getElementById('route-from');
+            const inputTo = document.getElementById('route-to');
 
-            let items = [];
-
-            // VMS messages
-            liveAlerts.vms.forEach(v => {
-                const msg = (v.Message || v.message || '').trim();
-                if (msg) {
-                const formattedMsg = msg.replace(/,/g, ' ');
-                items.push(`<span class="alert-item">📢 ${formattedMsg}</span>`);
-                }
-            });
-            
-            // Train alerts
-            liveAlerts.train.forEach(a => {
-                if (a.content) {
-                    const line = a.line ?? ''; 
-                    const lineText = line ? `${line}: ` : '';
-                    items.push(`<span class="alert-item">🚇 ${lineText}${a.content}</span>`);
-                }
-            });
-
-            // All incidents
-            liveAlerts.incidents.forEach(i => {
-                if (i.message) {
-                items.push(`<span class="alert-item">⚠️ ${i.type}: ${i.message}</span>`);
-                }
-            });
-
-            if (items.length === 0) {
-                marquee.innerHTML = 'No active alerts.';
-                marquee.style.animation = 'none';
-                return;
-            }
-
-            marquee.innerHTML = items.join(' &nbsp;&nbsp;&nbsp; ') + ' &nbsp;&nbsp;&nbsp; ' + items.join(' &nbsp;&nbsp;&nbsp; ');
-            
-            const duration = Math.max(12, items.length * 6);
-            marquee.style.animation = `scrollAlerts ${duration}s linear infinite`;
-            }
-
-        async function loadAllData() {
-            document.getElementById('loading').style.display = 'block';
-
-            try {
-                await loadStatistics();
-                await Promise.all([
-                    loadBusStops(),
-                    loadTrainStations(),
-                    loadCarparks(),
-                    loadTaxiStops(),
-                    loadTrafficCameras(),
-                    loadIncidents(),
-                    loadVMS(),
-                    loadTrainAlerts(),
-                    loadCacheStats(),
-                    updateMarquee(),
-                ]);
-            } catch (error) {
-                console.error('Error loading data:', error);
-                showError('Failed to load some data. Please check if the API server is running.');
-            } finally {
-                document.getElementById('loading').style.display = 'none';
-            }
-        }
-
-        function refreshData() {
-            loadAllData();
-        }
-
-        // Toggle layers
-        document.getElementById('show-bus-stops').addEventListener('change', (e) => {
-            if (e.target.checked) {
-                map.addLayer(layers.busStops);
-            } else {
-                map.removeLayer(layers.busStops);
+            if (!inputFrom.value) {
+                inputFrom.value = `${lat}, ${lng}`;
+                if (state.routeMarkers.from) map.removeLayer(state.routeMarkers.from);
+                state.routeMarkers.from = L.marker([lat, lng], { icon: icons.routeStart }).addTo(map);
+            } else if (!inputTo.value) {
+                inputTo.value = `${lat}, ${lng}`;
+                if (state.routeMarkers.to) map.removeLayer(state.routeMarkers.to);
+                state.routeMarkers.to = L.marker([lat, lng], { icon: icons.routeEnd }).addTo(map);
+                app.utils.findNearbyStops(lat, lng);
             }
         });
 
-        document.getElementById('show-train-stations').addEventListener('change', (e) => {
-            if (e.target.checked) {
-                map.addLayer(layers.trainStations);
-            } else {
-                map.removeLayer(layers.trainStations);
-            }
-        });
+        // --- Layer Toggles ---
+        const setupToggle = (id, layerName) => {
+            const el = document.getElementById(id);
+            if(el) el.addEventListener('change', (e) => e.target.checked ? map.addLayer(layers[layerName]) : map.removeLayer(layers[layerName]));
+        };
+        setupToggle('show-bus-stops', 'busStops');
+        setupToggle('show-train-stations', 'trainStations');
+        setupToggle('show-carparks', 'carparks');
+        setupToggle('show-taxi-stops', 'taxiStops');
+        setupToggle('show-traffic-cameras', 'trafficCameras');
+        setupToggle('show-incidents', 'incidents');
 
-        document.getElementById('show-carparks').addEventListener('change', (e) => {
-            if (e.target.checked) {
-                map.addLayer(layers.carparks);
-            } else {
-                map.removeLayer(layers.carparks);
-            }
-        });
+        // Init
+        app.data.refreshAll();
 
-        document.getElementById('show-taxi-stops').addEventListener('change', (e) => {
-            if (e.target.checked) {
-                map.addLayer(layers.taxiStops);
-            } else {
-                map.removeLayer(layers.taxiStops);
-            }
-        });
-
-        document.getElementById('show-traffic-cameras').addEventListener('change', (e) => {
-            if (e.target.checked) {
-                map.addLayer(layers.trafficCameras);
-            } else {
-                map.removeLayer(layers.trafficCameras);
-            }
-        });
-
-        document.getElementById("show-incidents").addEventListener("change", (e) => {
-            if (e.target.checked) {
-                map.addLayer(layers.incidents);
-            } else {
-                map.removeLayer(layers.incidents);
-            }
-        });
-
-        // Load data on page load
-        loadAllData();
     </script>
 </body>
-
 </html>
