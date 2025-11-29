@@ -7,7 +7,6 @@
     <title>Smart City Dashboard - Singapore Transportation</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
     <link rel="stylesheet" href="../style.css">
 </head>
 
@@ -95,24 +94,6 @@
                     <input type="text" id="route-to" placeholder="Destination...">
                 </div>
 
-                <div class="control-group">
-                    <label>Travel Mode</label>
-                    <div class="route-mode-selector">
-                        <div class="mode-button active" onclick="app.routing.setMode('driving')">🚗 Drive</div>
-                        <div class="mode-button" onclick="app.routing.setMode('walking')">🚶 Walk</div>
-                        <div class="mode-button" onclick="app.routing.setMode('transit')">🚌 Transit</div>
-                    </div>
-                </div>
-
-                <div class="control-group">
-                    <label>Routing Algorithm</label>
-                    <div class="route-mode-selector">
-                        <div class="mode-button active" id="algo-osrm" onclick="app.routing.setAlgo('osrm')">OSRM (External)</div>
-                        <div class="mode-button" id="algo-neo4j" onclick="app.routing.setAlgo('neo4j')">Neo4j (LTA Real-time)</div>
-                    </div>
-                    <small style="color: #888; margin-top: 5px; display: block;">Neo4j uses live Singapore traffic data</small>
-                </div>
-
                 <button onclick="app.routing.planRoute()" id="plan-route-btn">Find Route</button>
                 <button onclick="app.routing.clearRoute()" style="margin-top: 10px; background: #dc3545;">Clear Route</button>
 
@@ -147,7 +128,6 @@
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 
     <script>
         /**
@@ -191,9 +171,8 @@
 
         const state = {
             routeMode: 'driving',
-            routingAlgo: 'osrm',
+            routingAlgo: 'neo4j',
             routeMarkers: { from: null, to: null },
-            routingControl: null,
             neo4jRouteLines: [],
             allBusStops: [],
             liveAlerts: { train: [], vms: [], incidents: [] }
@@ -409,12 +388,11 @@
 
                 setAlgo: (algo) => {
                     state.routingAlgo = algo;
-                    document.querySelectorAll('#algo-osrm, #algo-neo4j').forEach(btn => btn.classList.remove('active'));
+                    document.querySelectorAll('#algo-neo4j').forEach(btn => btn.classList.remove('active'));
                     document.getElementById(`algo-${algo}`).classList.add('active');
                 },
 
                 clearRoute: () => {
-                    if (state.routingControl) map.removeControl(state.routingControl);
                     state.neo4jRouteLines.forEach(l => map.removeLayer(l));
                     state.neo4jRouteLines = [];
                     
@@ -436,29 +414,10 @@
                     const from = fromStr.split(',').map(Number);
                     const to = toStr.split(',').map(Number);
 
-                    // Clear previous
-                    if (state.routingControl) {
-                        map.removeControl(state.routingControl);
-                        state.routingControl = null;
-                    }
+                    state.neo4jRouteLines.forEach(l => map.removeLayer(l));
+                    state.neo4jRouteLines = [];
 
-                    if (state.routingAlgo === 'osrm') {
-                        app.routing.runOSRM(from, to);
-                    } else {
-                        await app.routing.runNeo4j(from, to);
-                    }
-                },
-
-                runOSRM: (from, to) => {
-                    state.routingControl = L.Routing.control({
-                        waypoints: [L.latLng(from), L.latLng(to)],
-                        lineOptions: { styles: [{color: '#667eea', weight: 5}] }
-                    }).addTo(map);
-
-                    state.routingControl.on('routesfound', (e) => {
-                        const s = e.routes[0].summary;
-                        app.routing.showDetails((s.totalDistance/1000).toFixed(2), Math.round(s.totalTime/60), 'OSRM');
-                    });
+                    await app.routing.runNeo4j(from, to);
                 },
 
                 runNeo4j: async (from, to) => {
