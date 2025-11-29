@@ -3,7 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { connectDB } = require('./nosql/mongodb');
-const { connectRedis, closeRedis } = require('./nosql/redis');
+const { connectRedis } = require('./nosql/redis');
 
 const app = express();
 const PORT = process.env.PORT || 5000;

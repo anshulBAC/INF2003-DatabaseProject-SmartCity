@@ -1,8 +1,8 @@
-from fastapi import FastAPI, HTTPException, Depends, Request, Query, Path
+from fastapi import FastAPI, HTTPException, Depends, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
-from typing import List, Optional, Dict, Any, ClassVar
+from typing import List, Optional, Dict, Any
 from neo4j import AsyncGraphDatabase, AsyncDriver
 from datetime import datetime, timedelta, timezone
 import structlog
@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 
 from app.config.settings import settings
 from app.config.database import connect_to_mongo, close_mongo_connection, connect_to_redis, close_redis_connection
-from app.services import traffic_service, parking_service, planning_service, analytics_service
+from app.services import traffic_service, parking_service
 from app.utils.helpers import (
     ExternalAPIError, DataNotFoundError, ValidationError, 
     get_current_user_optional, validate_coordinates, validate_pagination
@@ -357,46 +357,6 @@ async def get_traffic_speeds(
             detail="Failed to retrieve traffic speeds"
         )
 
-
-@app.get("/api/v1/traffic/predictions", tags=["Traffic Management"])
-async def get_traffic_predictions(
-    road_name: Optional[str] = Query(None, description="Filter predictions for specific road"),
-    horizon_minutes: int = Query(30, ge=15, le=120, description="Prediction time horizon in minutes"),
-    current_user = Depends(get_current_user_optional)
-):
-    """
-    Get AI-powered traffic predictions for the next 15-120 minutes.
-    """
-    try:
-        predictions = await traffic_service.get_traffic_predictions(
-            road_name=road_name,
-            horizon_minutes=horizon_minutes
-        )
-        
-        result = {
-            "prediction_count": len(predictions),
-            "horizon_minutes": horizon_minutes,
-            "road_filter": road_name,
-            "generated_at": datetime.now(timezone.utc)().isoformat(),
-            "predictions": [pred.dict() for pred in predictions]
-        }
-        
-        logger.info(
-            "Traffic predictions requested",
-            user_id=getattr(current_user, 'id', 'anonymous'),
-            prediction_count=len(predictions)
-        )
-        
-        return result
-        
-    except Exception as e:
-        logger.error("Failed to get traffic predictions", error=str(e))
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to generate traffic predictions"
-        )
-
-
 @app.get("/api/v1/traffic/incidents", tags=["Traffic Management"])
 async def get_traffic_incidents(
     active_only: bool = Query(True, description="Return only active incidents"),
@@ -476,57 +436,6 @@ async def get_parking_overview(current_user = Depends(get_current_user_optional)
             status_code=500,
             detail="Failed to retrieve parking overview"
         )
-
-
-# ================================
-# PLANNING ENDPOINTS  
-# ================================
-
-@app.get("/api/v1/planning/overview", tags=["Urban Planning"])
-async def get_planning_overview(current_user = Depends(get_current_user_optional)):
-    """Get urban planning data overview"""
-    try:
-        overview = await planning_service.get_planning_overview()
-        
-        logger.info(
-            "Planning overview requested",
-            user_id=getattr(current_user, 'id', 'anonymous')
-        )
-        
-        return overview
-        
-    except Exception as e:
-        logger.error("Failed to get planning overview", error=str(e))
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to retrieve planning overview"
-        )
-
-
-# ================================
-# ANALYTICS ENDPOINTS
-# ================================
-
-@app.get("/api/v1/analytics/overview", tags=["Analytics & Predictions"])
-async def get_analytics_overview(current_user = Depends(get_current_user_optional)):
-    """Get analytics overview"""
-    try:
-        overview = await analytics_service.get_analytics_overview()
-        
-        logger.info(
-            "Analytics overview requested",
-            user_id=getattr(current_user, 'id', 'anonymous')
-        )
-        
-        return overview
-        
-    except Exception as e:
-        logger.error("Failed to get analytics overview", error=str(e))
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to retrieve analytics overview"
-        )
-
 
 # ================================
 # UTILITY ENDPOINTS
