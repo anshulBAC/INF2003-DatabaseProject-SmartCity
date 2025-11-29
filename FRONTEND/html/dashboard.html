@@ -70,6 +70,7 @@
                 </div>
 
                 <button onclick="app.data.refreshAll()">🔄 Refresh Data</button>
+                <button onclick="app.data.clearCache()" style="background: #dc3545; margin-top: 10px;">🗑️ Clear All Cache</button> 
 
                 <div class="legend">
                     <h3>Legend</h3>
@@ -375,6 +376,35 @@
                     items.forEach(i => {
                         grid.innerHTML += `<div class="stat-card"><div class="number">${(i.v || 0).toLocaleString()}</div><div class="label">${i.l}</div></div>`;
                     });
+                },
+
+                clearCache: async () => {
+                    if (!confirm('Are you sure you want to clear ALL MongoDB and Redis caches? This will force an immediate data refresh from external APIs.')) {
+                        return;
+                    }
+                    
+                    document.getElementById('loading').style.display = 'block';
+                    try {
+                        const url = `${CONFIG.API.NOSQL}/api/cache/clear`;
+                        const response = await fetch(url, { method: 'DELETE' });
+                        
+                        if (!response.ok) {
+                            const errorJson = await response.json();
+                            throw new Error(`Server failed to clear cache: ${errorJson.error}`);
+                        }
+                        
+                        const json = await response.json();
+                        alert(`Cache cleared successfully: ${json.deletedCount} MongoDB records deleted. Redis: ${json.redisKeysDeleted}`);
+                        
+                        // After clearing, force a full data refresh to load new data
+                        await app.data.refreshAll(); 
+
+                    } catch (error) {
+                        console.error('Error clearing cache:', error);
+                        app.ui.showError(`Failed to clear cache: ${error.message}`);
+                    } finally {
+                        document.getElementById('loading').style.display = 'none';
+                    }
                 }
             },
 
