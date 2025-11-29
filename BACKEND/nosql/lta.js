@@ -190,7 +190,6 @@ async function buildRoadNetworkGraph() {
       MERGE (end:Point {lat: toFloat(seg.EndLat), lon: toFloat(seg.EndLon)})
       ON CREATE SET end.id = toString(seg.EndLat) + '_' + toString(seg.EndLon)
       
-      // Use pre-calculated speed from JavaScript
       MERGE (start)-[r:ROAD_SEGMENT]->(end)
       SET r.link_id = seg.LinkID,
           r.road_name = seg.RoadName,

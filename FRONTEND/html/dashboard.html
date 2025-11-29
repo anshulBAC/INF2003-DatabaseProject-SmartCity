@@ -138,8 +138,8 @@
          */
         const CONFIG = {
             API: {
-                SQL: 'http://localhost:8000',   // FastAPI Port (Bus stops, etc)
-                NOSQL: 'http://localhost:5000'  // Node.js Port (Live incidents)
+                SQL: 'http://localhost:8000',
+                NOSQL: 'http://localhost:5000'
             },
             LIMITS: {
                 BUS_STOPS: 5000,
@@ -279,7 +279,6 @@
                 refreshAll: async () => {
                     document.getElementById('loading').style.display = 'block';
                     try {
-                        // Load all data in parallel using allSettled so one failure doesn't block others
                         await Promise.allSettled([
                             app.data.loadLayer(CONFIG.API.SQL, '/api/bus-stops', layers.busStops, icons.busStop, 'bus-stops-count', CONFIG.LIMITS.BUS_STOPS),
                             app.data.loadLayer(CONFIG.API.SQL, '/api/train-stations', layers.trainStations, icons.trainStation, 'train-stations-count'),
@@ -302,7 +301,7 @@
                     const data = await app.data.fetch(baseUrl, endpoint, limit);
                     layerGroup.clearLayers();
                     
-                    if(endpoint.includes('bus-stops')) state.allBusStops = data; // Save for routing logic
+                    if(endpoint.includes('bus-stops')) state.allBusStops = data;
 
                     data.forEach(item => {
                         const lat = item.Latitude || (item.Location ? parseFloat(item.Location.split(' ')[0]) : null);
@@ -396,7 +395,6 @@
                         const json = await response.json();
                         alert(`Cache cleared successfully: ${json.deletedCount} MongoDB records deleted. Redis: ${json.redisKeysDeleted}`);
                         
-                        // After clearing, force a full data refresh to load new data
                         await app.data.refreshAll(); 
 
                     } catch (error) {
@@ -496,10 +494,8 @@
                 },
 
                 drawNeo4jPath: (route) => {
-                    // Preserved specific traffic speed coloring
                     if (route.path_coordinates && route.path_coordinates.length > 0) {
                         
-                        // If we have segment details, apply color logic
                         if (route.segment_details && route.segment_details.length > 0) {
                             for (let i = 0; i < route.segment_details.length; i++) {
                                 const segment = route.segment_details[i];
@@ -516,7 +512,6 @@
                                 state.neo4jRouteLines.push(line);
                             }
                             
-                            // Re-add Traffic Legend Control
                             const legend = L.control({position: 'bottomright'});
                             legend.onAdd = function() {
                                 const div = L.DomUtil.create('div', 'traffic-legend');
@@ -527,7 +522,6 @@
                             state.neo4jRouteLines.push(legend);
 
                         } else {
-                            // Fallback: Single colored line if no speed data
                             const line = L.polyline(route.path_coordinates, { color: '#ff6b6b', weight: 5 }).addTo(map);
                             state.neo4jRouteLines.push(line);
                         }
@@ -589,7 +583,6 @@
         setupToggle('show-traffic-cameras', 'trafficCameras');
         setupToggle('show-incidents', 'incidents');
 
-        // Init
         app.data.refreshAll();
 
     </script>

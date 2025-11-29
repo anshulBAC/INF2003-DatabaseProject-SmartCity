@@ -291,9 +291,8 @@ app.get('/api/cache/stats', async (req, res) => {
     
     // 2. Get Comprehensive Redis Info
     const redisPing = await redisClient.ping();
-    const infoResult = await redisClient.info(); // Get ALL stats from Redis server
+    const infoResult = await redisClient.info();
 
-    // Parse specific metrics from the INFO string (Standard Redis format)
     const hitsMatch = infoResult.match(/keyspace_hits:(\d+)/);
     const missesMatch = infoResult.match(/keyspace_misses:(\d+)/);
     const expiredMatch = infoResult.match(/expired_keys:(\d+)/);
