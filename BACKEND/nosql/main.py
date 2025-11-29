@@ -698,7 +698,7 @@ async def get_optimized_route_recommendations(
             "start_location": {"latitude": start_lat, "longitude": start_lon},
             "end_location": {"latitude": end_lat, "longitude": end_lon},
             "vehicle_type": vehicle_type,
-            "generated_at": datetime.now(timezone.utc)().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
             "routes": routes
         }
     

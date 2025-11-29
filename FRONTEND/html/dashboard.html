@@ -589,7 +589,7 @@
                 console.error('Neo4j routing error:', error);
                 document.getElementById('route-details').innerHTML = `
                     <div style="color: #dc3545;">
-                        ❌ Failed to calculate route using Neo4j.<br>
+                        Failed to calculate route using Neo4j.<br>
                         <small>${error.message}</small><br>
                         <button onclick="routingAlgo='osrm'; setRoutingAlgo('osrm'); planRoute();" style="margin-top: 10px;">
                             Try OSRM instead
@@ -922,7 +922,9 @@
             // Train alerts
             liveAlerts.train.forEach(a => {
                 if (a.content) {
-                items.push(`<span class="alert-item">🚇 ${a.line}: ${a.content}</span>`);
+                    const line = a.line ?? ''; 
+                    const lineText = line ? `${line}: ` : '';
+                    items.push(`<span class="alert-item">🚇 ${lineText}${a.content}</span>`);
                 }
             });
 

@@ -66,25 +66,6 @@ async function updateTrafficIncidents() {
   return 0;
 }
 
-async function updateRoadworks() {
-  const db = await connectDB();
-  const col = db.collection('roadworks');
-
-  const data = await fetchFromLTA('RoadWorks');
-
-  await col.deleteMany({});
-  if (data.length > 0) {
-    const docs = data.map(d => ({
-      ...d,
-      cachedAt: new Date(),
-    }));
-    await col.insertMany(docs);
-    console.log(`Cached ${docs.length} roadworks`);
-    return docs.length;
-  }
-  return 0;
-}
-
 async function updateVMSEMAS() {
   const db = await connectDB();
   const col = db.collection('vms_emas');
@@ -121,30 +102,6 @@ async function updateTrainServiceAlerts() {
     await col.insertMany(docs);
     console.log(`Cached ${docs.length} train service alerts`);
     return docs.length;
-  }
-  return 0;
-}
-
-async function updateBusArrivalForStop(busStopCode) {
-  const db = await connectDB();
-  const col = db.collection('bus_arrival');
-
-  const data = await fetchFromLTA(`v3/BusArrival?BusStopCode=${busStopCode}`);
-
-  if (data && data.Services) {
-    const doc = {
-      BusStopCode: busStopCode,
-      Services: data.Services,
-      cachedAt: new Date(),
-    };
-
-    await col.updateOne(
-      { BusStopCode: busStopCode },
-      { $set: doc },
-      { upsert: true }
-    );
-    console.log(`Cached bus arrival for stop ${busStopCode}`);
-    return 1;
   }
   return 0;
 }
@@ -272,10 +229,8 @@ async function buildRoadNetworkGraph() {
 
 module.exports = {
   updateTrafficIncidents,
-  updateRoadworks,
   updateVMSEMAS,
   updateTrainServiceAlerts,
-  updateBusArrivalForStop,
   updateTrafficSpeedBands,
   buildRoadNetworkGraph,
   fetchFromLTA,

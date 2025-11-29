@@ -1,7 +1,6 @@
 const cron = require('node-cron');
 const { connectNeo4j } = require('./nosql/neo4j');
 const {
-  updateRoadworks,
   updateTrafficIncidents,
   updateVMSEMAS,
   updateTrainServiceAlerts,
@@ -26,15 +25,6 @@ cron.schedule('*/5 * * * *', async () => {
     await updateTrainServiceAlerts();
   } catch (e) {
     console.error('Train alerts cache update failed:', e.message);
-  }
-});
-
-cron.schedule('0 2 * * *', async () => {
-  try {
-    console.log('[CRON] Caching Road Works Daily');
-    await updateRoadworks();
-  } catch (e) {
-    console.error('Road works cache update failed:', e.message);
   }
 });
 
@@ -76,5 +66,4 @@ console.log('- VMS/EMAS & Incidents: Every 2 minutes');
 console.log('- Train Alerts: Every 5 minutes');
 console.log('- Road Works: Daily at 2 AM');
 console.log('- Traffic Speed Bands & Graph Weights: Every 5 minutes');
-console.log('- Bus Arrival: On-demand cache (30 sec TTL)');
 console.log('- Road Network Graph: Built on startup, weights updated every 5 min');
