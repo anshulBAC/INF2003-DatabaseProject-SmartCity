@@ -36,7 +36,7 @@ function getCacheAge(cachedAt) {
 
 app.get('/api/traffic/incidents', async (req, res) => {
   const { type } = req.query;
-  const cacheKey = type ? `traffic:incidents:${type.toLowerCase()}` : 'traffic:incidents:default';
+  const cacheKey = 'traffic:incidents:all';
   const TTL_SECONDS = 60; // Cache for 60 seconds
 
   try {
@@ -233,7 +233,7 @@ app.post('/api/admin/refresh/:type', async (req, res) => {
       updateTrainServiceAlerts,
     } = require('./nosql/lta');
 
-    if (type === 'incidents') await redisClient.del('traffic:incidents:default', 'traffic:incidents:heavy', 'traffic:incidents:roadwork');
+    if (type === 'incidents') await redisClient.del('traffic:incidents:all');
     if (type === 'vms') await redisClient.del('traffic:vms:all');
     if (type === 'train') await redisClient.del('train:alerts:all');
     
