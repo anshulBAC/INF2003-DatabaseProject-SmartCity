@@ -1,0 +1,37 @@
+# Core Framework
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+
+# Database
+sqlalchemy>=2.0.23
+pymongo>=4.5.0
+motor>=3.3.2
+mysql-connector-python>=8.2.0
+
+# Authentication & Security
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+
+# Data Validation & Serialization
+pydantic>=2.9  
+pydantic-settings>=2.1.0
+
+# HTTP Client
+httpx
+requests
+
+# Data Processing
+python-dateutil
+
+# Monitoring & Logging
+structlog
+
+# Development
+python-dotenv
+
+# Graph Database
+neo4j
+
+# Redis (compatible version)
+redis>=4.5.2,<5.0.0
