@@ -1,6 +1,7 @@
 """
 Smart City Framework - FastAPI Backend
 RESTful API for Singapore Transportation Infrastructure Data
+Cleaned version - removed unimplemented features and deleted table references
 """
 
 from fastapi import FastAPI, HTTPException, Query
@@ -14,7 +15,6 @@ import requests
 from app.config.settings import settings
 
 DB_CONFIG = {
-    # Assuming these attributes exist in your Settings model
     'host': settings.MARIADB_HOST,
     'user': settings.MARIADB_USER,
     'password': settings.MARIADB_PASSWORD, 
@@ -61,6 +61,19 @@ class BusRoute(BaseModel):
     SUN_FirstBus: str
     SUN_LastBus: str
 
+class BusService(BaseModel):
+    ServiceNo: str
+    Operator: str
+    Direction: int
+    Category: str
+    OriginCode: str
+    DestinationCode: str
+    AM_Peak_Freq: str
+    AM_Offpeak_Freq: str
+    PM_Peak_Freq: str
+    PM_Offpeak_Freq: str
+    LoopDesc: str
+
 class Carpark(BaseModel):
     CarParkID: str
     Area: str
@@ -90,7 +103,7 @@ class TrafficCamera(BaseModel):
 
 # Database connection helper
 def get_db_connection():
-    """Get database connection"""
+    """Get database connection with buffered cursor support"""
     try:
         connection = mysql.connector.connect(**DB_CONFIG)
         return connection
@@ -107,6 +120,7 @@ async def root():
         "endpoints": {
             "bus_stops": "/api/bus-stops",
             "bus_routes": "/api/bus-routes",
+            "bus_services": "/api/bus-services",
             "carparks": "/api/carparks",
             "train_stations": "/api/train-stations",
             "taxi_stops": "/api/taxi-stops",
@@ -124,7 +138,7 @@ async def get_bus_stops(
 ):
     """Get all bus stops with optional filtering"""
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(dictionary=True, buffered=True)
     
     try:
         if road_name:
@@ -153,7 +167,7 @@ async def get_bus_stops(
 async def get_bus_stop(bus_stop_code: str):
     """Get a specific bus stop by code"""
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(dictionary=True, buffered=True)
     
     try:
         query = """
@@ -181,12 +195,15 @@ async def get_bus_routes(
 ):
     """Get bus routes with optional filtering by service number"""
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(dictionary=True, buffered=True)
     
     try:
         if service_no:
             query = """
-                SELECT * FROM bus_routes 
+                SELECT ServiceNo, Operator, Direction, StopSequence, BusStopCode, 
+                       Distance, WD_FirstBus, WD_LastBus, SAT_FirstBus, SAT_LastBus, 
+                       SUN_FirstBus, SUN_LastBus
+                FROM bus_routes 
                 WHERE ServiceNo = %s
                 ORDER BY Direction, StopSequence
                 LIMIT %s OFFSET %s
@@ -194,7 +211,10 @@ async def get_bus_routes(
             cursor.execute(query, (service_no, limit, offset))
         else:
             query = """
-                SELECT * FROM bus_routes 
+                SELECT ServiceNo, Operator, Direction, StopSequence, BusStopCode, 
+                       Distance, WD_FirstBus, WD_LastBus, SAT_FirstBus, SAT_LastBus, 
+                       SUN_FirstBus, SUN_LastBus
+                FROM bus_routes 
                 ORDER BY ServiceNo, Direction, StopSequence
                 LIMIT %s OFFSET %s
             """
@@ -206,21 +226,67 @@ async def get_bus_routes(
         cursor.close()
         conn.close()
 
-@app.get("/api/bus-services")
-async def get_bus_services():
-    """Get unique bus service numbers"""
+# Bus Services Endpoints
+@app.get("/api/bus-services", response_model=List[BusService])
+async def get_bus_services(
+    operator: Optional[str] = None,
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0)
+):
+    """Get all bus services with optional filtering by operator"""
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(dictionary=True, buffered=True)
+    
+    try:
+        if operator:
+            query = """
+                SELECT ServiceNo, Operator, Direction, Category, OriginCode, 
+                       DestinationCode, AM_Peak_Freq, AM_Offpeak_Freq, 
+                       PM_Peak_Freq, PM_Offpeak_Freq, LoopDesc
+                FROM bus_services 
+                WHERE Operator = %s
+                ORDER BY ServiceNo
+                LIMIT %s OFFSET %s
+            """
+            cursor.execute(query, (operator, limit, offset))
+        else:
+            query = """
+                SELECT ServiceNo, Operator, Direction, Category, OriginCode, 
+                       DestinationCode, AM_Peak_Freq, AM_Offpeak_Freq, 
+                       PM_Peak_Freq, PM_Offpeak_Freq, LoopDesc
+                FROM bus_services 
+                ORDER BY ServiceNo
+                LIMIT %s OFFSET %s
+            """
+            cursor.execute(query, (limit, offset))
+        
+        results = cursor.fetchall()
+        return results
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.get("/api/bus-services/{service_no}")
+async def get_bus_service(service_no: str):
+    """Get a specific bus service by service number"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True, buffered=True)
     
     try:
         query = """
-            SELECT DISTINCT ServiceNo, Operator 
-            FROM bus_routes 
-            ORDER BY ServiceNo
+            SELECT ServiceNo, Operator, Direction, Category, OriginCode, 
+                   DestinationCode, AM_Peak_Freq, AM_Offpeak_Freq, 
+                   PM_Peak_Freq, PM_Offpeak_Freq, LoopDesc
+            FROM bus_services 
+            WHERE ServiceNo = %s
         """
-        cursor.execute(query)
-        results = cursor.fetchall()
-        return results
+        cursor.execute(query, (service_no,))
+        result = cursor.fetchone()
+        
+        if not result:
+            raise HTTPException(status_code=404, detail="Bus service not found")
+        
+        return result
     finally:
         cursor.close()
         conn.close()
@@ -234,19 +300,21 @@ async def get_carparks(
 ):
     """Get all carparks with optional filtering"""
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(dictionary=True, buffered=True)
     
     try:
         if area:
             query = """
-                SELECT * FROM carparks 
+                SELECT CarParkID, Area, Development, Location, AvailableLots, LotType, Agency
+                FROM carparks 
                 WHERE Area LIKE %s
                 LIMIT %s OFFSET %s
             """
             cursor.execute(query, (f"%{area}%", limit, offset))
         else:
             query = """
-                SELECT * FROM carparks 
+                SELECT CarParkID, Area, Development, Location, AvailableLots, LotType, Agency
+                FROM carparks 
                 LIMIT %s OFFSET %s
             """
             cursor.execute(query, (limit, offset))
@@ -261,10 +329,14 @@ async def get_carparks(
 async def get_carpark(carpark_id: str):
     """Get a specific carpark by ID"""
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(dictionary=True, buffered=True)
     
     try:
-        query = "SELECT * FROM carparks WHERE CarParkID = %s"
+        query = """
+            SELECT CarParkID, Area, Development, Location, AvailableLots, LotType, Agency
+            FROM carparks 
+            WHERE CarParkID = %s
+        """
         cursor.execute(query, (carpark_id,))
         result = cursor.fetchone()
         
@@ -277,25 +349,25 @@ async def get_carpark(carpark_id: str):
         conn.close()
 
 # Train Stations Endpoints
-@app.get("/api/train-stations")
+@app.get("/api/train-stations", response_model=List[TrainStation])
 async def get_train_stations(
-    line_code: Optional[str] = None,
+    line: Optional[str] = None,
     limit: int = Query(200, ge=1, le=1000),
     offset: int = Query(0, ge=0)
 ):
     """Get all train stations with optional filtering by line"""
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(dictionary=True, buffered=True)
     
     try:
-        if line_code:
+        if line:
             query = """
                 SELECT StationCode, StationName, Line, Latitude, Longitude 
                 FROM train_stations 
                 WHERE Line = %s
                 LIMIT %s OFFSET %s
             """
-            cursor.execute(query, (line_code, limit, offset))
+            cursor.execute(query, (line, limit, offset))
         else:
             query = """
                 SELECT StationCode, StationName, Line, Latitude, Longitude 
@@ -310,6 +382,29 @@ async def get_train_stations(
         cursor.close()
         conn.close()
 
+@app.get("/api/train-stations/{station_code}", response_model=TrainStation)
+async def get_train_station(station_code: str):
+    """Get a specific train station by code"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True, buffered=True)
+    
+    try:
+        query = """
+            SELECT StationCode, StationName, Line, Latitude, Longitude 
+            FROM train_stations 
+            WHERE StationCode = %s
+        """
+        cursor.execute(query, (station_code,))
+        result = cursor.fetchone()
+        
+        if not result:
+            raise HTTPException(status_code=404, detail="Train station not found")
+        
+        return result
+    finally:
+        cursor.close()
+        conn.close()
+
 # Taxi Stops Endpoints
 @app.get("/api/taxi-stops", response_model=List[TaxiStop])
 async def get_taxi_stops(
@@ -318,7 +413,7 @@ async def get_taxi_stops(
 ):
     """Get all taxi stops"""
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(dictionary=True, buffered=True)
     
     try:
         query = """
@@ -333,6 +428,29 @@ async def get_taxi_stops(
         cursor.close()
         conn.close()
 
+@app.get("/api/taxi-stops/{taxi_code}", response_model=TaxiStop)
+async def get_taxi_stop(taxi_code: str):
+    """Get a specific taxi stop by code"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True, buffered=True)
+    
+    try:
+        query = """
+            SELECT TaxiCode, Latitude, Longitude 
+            FROM taxi_stops 
+            WHERE TaxiCode = %s
+        """
+        cursor.execute(query, (taxi_code,))
+        result = cursor.fetchone()
+        
+        if not result:
+            raise HTTPException(status_code=404, detail="Taxi stop not found")
+        
+        return result
+    finally:
+        cursor.close()
+        conn.close()
+
 # Traffic Cameras Endpoints
 @app.get("/api/traffic-cameras", response_model=List[TrafficCamera])
 async def get_traffic_cameras(
@@ -341,7 +459,7 @@ async def get_traffic_cameras(
 ):
     """Get all traffic cameras"""
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(dictionary=True, buffered=True)
     
     try:
         query = """
@@ -397,7 +515,7 @@ async def get_live_traffic_cameras(
 async def get_traffic_camera(camera_id: str):
     """Get a specific traffic camera by ID"""
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(dictionary=True, buffered=True)
     
     try:
         query = """
@@ -456,15 +574,16 @@ async def get_live_traffic_camera(camera_id: str):
 # Statistics Endpoint
 @app.get("/api/stats")
 async def get_statistics():
-    """Get database statistics"""
+    """Get database statistics for all implemented tables"""
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(dictionary=True, buffered=True)
     
     try:
         stats = {}
         
-        # Count records in each table
-        tables = ['bus_stops', 'bus_routes', 'carparks', 'train_stations', 'taxi_stops', 'traffic_cameras']
+        # Count records in each table - only tables that exist
+        tables = ['bus_stops', 'bus_routes', 'bus_services', 'carparks', 
+                  'train_stations', 'taxi_stops', 'traffic_cameras']
         
         for table in tables:
             cursor.execute(f"SELECT COUNT(*) as count FROM {table}")
@@ -474,6 +593,7 @@ async def get_statistics():
         return {
             "total_bus_stops": stats['bus_stops'],
             "total_bus_routes": stats['bus_routes'],
+            "total_bus_services": stats['bus_services'],
             "total_carparks": stats['carparks'],
             "total_train_stations": stats['train_stations'],
             "total_taxi_stops": stats['taxi_stops'],
@@ -490,6 +610,10 @@ async def health_check():
     """Health check endpoint"""
     try:
         conn = get_db_connection()
+        cursor = conn.cursor(buffered=True)
+        cursor.execute("SELECT 1")
+        cursor.fetchone()
+        cursor.close()
         conn.close()
         return {"status": "healthy", "database": "connected"}
     except Exception as e:
