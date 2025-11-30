@@ -29,9 +29,15 @@ class MongoDB:
 mongodb = MongoDB()
 
 async def connect_to_mongo():
-    """Create database connection"""
+    """Create database connection with SSL bypass for development"""
     try:
-        mongodb.client = AsyncIOMotorClient(settings.mongodb_uri)
+        # FIXED: Add SSL parameters to bypass certificate verification
+        mongodb.client = AsyncIOMotorClient(
+            settings.mongodb_uri,
+            tlsAllowInvalidCertificates=True,  # Bypass SSL certificate validation
+            serverSelectionTimeoutMS=5000,      # Faster timeout
+            connectTimeoutMS=5000
+        )
         mongodb.database = mongodb.client[settings.MONGODB_NAME]
         
         # Test connection

@@ -98,47 +98,52 @@
                 <button onclick="app.routing.planRoute()" id="plan-route-btn">Find Route</button>
                 <button onclick="app.routing.clearRoute()" style="margin-top: 10px; background: #dc3545;">Clear Route</button>
 
-                <div class="route-info" id="route-info-box" style="display:none;">
+                <div id="route-info" class="route-info" style="display: none;">
                     <h4>Route Information</h4>
-                    <div class="route-detail"><span>Distance:</span><strong id="route-distance">-</strong></div>
-                    <div class="route-detail"><span>Est. Time:</span><strong id="route-time">-</strong></div>
-                    <div class="route-detail"><span>Mode:</span><strong id="route-mode">-</strong></div>
+                    <div id="route-details"></div>
                 </div>
 
-                <h3 style="margin-top:20px">Nearby Bus Stops</h3>
-                <div class="nearby-stops" id="nearby-stops">Click on map to find stops...</div>
+                <div id="nearby-stops-container" style="display: none;">
+                    <div class="control-group">
+                        <label>Nearby Bus Stops</label>
+                        <div id="nearby-stops" class="nearby-stops"></div>
+                    </div>
+                </div>
             </div>
+
+            <div id="error-message"></div>
         </div>
 
-        <div id="map"></div>
-
-        <div id="loading" class="loading" style="display:none;">
-            <div class="loading-spinner"></div>
-            <p>Loading data...</p>
-        </div>
-
-        <div id="live-alert-box">
-            <div>
+        <div id="map">
+            <div id="live-alert-box">
                 <div class="alert-title">⚠️ Live Congestion & Alerts</div>
-                <div class="alert-marquee-wrapper"><div class="alert-marquee" id="alert-marquee">No active alerts.</div></div>
+                <div class="alert-marquee-wrapper">
+                    <div class="alert-marquee" id="alert-marquee">Loading live alerts...</div>
+                </div>
+            </div>
+            <div class="loading" id="loading">
+                <div class="loading-spinner"></div>
+                <div>Loading data...</div>
             </div>
         </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <script>
         /**
          * ============================================================================
-         * 1. CONFIGURATION & INITIALIZATION
+         * 1. CONFIGURATION & CONSTANTS
          * ============================================================================
          */
         const CONFIG = {
             API: {
                 SQL: 'http://localhost:8000',
-                NOSQL: 'http://localhost:8000'
+                NOSQL: 'http://localhost:8001'
             },
             LIMITS: {
-                BUS_STOPS: 5000
+                BUS_STOPS: 5000,
+                DEFAULT: 1000
             },
             MAP: {
                 CENTER: [1.3521, 103.8198],
@@ -174,17 +179,12 @@
             liveAlerts: { train: [], vms: [], incidents: [] }
         };
 
-        // FIXED: Simple div icon with colored circles
+        // Icon Generators
         const icons = {
-            create: (color, size=12) => {
-                return L.divIcon({
-                    html: `<div style="background-color: ${color}; width: ${size}px; height: ${size}px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.4);"></div>`,
-                    className: '',
-                    iconSize: [size, size],
-                    iconAnchor: [size/2, size/2],
-                    popupAnchor: [0, -size/2]
-                });
-            },
+            create: (color, size=[12,12], anchor=[6,6]) => L.icon({
+                iconUrl: `data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iJHtjb2xvcn0iIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIGZpbGw9IiR7Y29sb3J9IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=`.replace('#', '%23'),
+                iconSize: size, iconAnchor: anchor, popupAnchor: [0, -anchor[1]]
+            }),
             routeStart: L.icon({
                 iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iNDUiIHZpZXdCb3g9IjAgMCAzMCA0NSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTUgMEMxMC4wMjk0IDAgNiA0LjAyOTQzIDYgOUM2IDEzLjk3MDYgMTUgMjcgMTUgMjdDMTUgMjcgMjQgMTMuOTcwNiAyNCA5QzI0IDQuMDI5NDMgMTkuOTcwNiAwIDE1IDBaIiBmaWxsPSIjRkYwMDAwIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiLz48Y2lyY2xlIGN4PSIxNSIgY3k9IjkiIHI9IjUiIGZpbGw9IndoaXRlIi8+PC9zdmc+',
                 iconSize: [30, 45], iconAnchor: [15, 45], popupAnchor: [0, -45]
@@ -205,12 +205,12 @@
             }
         };
 
-        // Create Static Icons with proper colors
-        icons.busStop = icons.create('#3388ff', 12);          // Blue
-        icons.trainStation = icons.create('#ff0000', 14);     // Red
-        icons.carpark = icons.create('#00ff00', 12);          // Green
-        icons.taxiStop = icons.create('#ffaa00', 12);         // Orange
-        icons.trafficCamera = icons.create('#9900ff', 14);    // Purple
+        // Static Icons
+        icons.busStop = icons.create('#3388ff');
+        icons.trainStation = icons.create('#ff0000', [14, 14], [7, 7]);
+        icons.carpark = icons.create('#00ff00');
+        icons.taxiStop = icons.create('#ffaa00');
+        icons.trafficCamera = icons.create('#9900ff', [14, 14], [7, 7]);
 
         /**
          * ============================================================================
@@ -218,32 +218,37 @@
          * ============================================================================
          */
         const app = {
-            // --- UI Functions ---
+            // --- UI Interaction Handlers ---
             ui: {
-                showError: (msg) => {
-                    alert(msg);
-                },
-
-                switchTab: (tabName) => {
+                switchTab: (tab) => {
                     document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
                     document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-                    
-                    document.querySelector(`[onclick="app.ui.switchTab('${tabName}')"]`).classList.add('active');
-                    document.getElementById(`${tabName}-tab`).classList.add('active');
+                    const btnIndex = tab === 'layers' ? 0 : 1;
+                    document.querySelectorAll('.tab-button')[btnIndex].classList.add('active');
+                    document.getElementById(`${tab}-tab`).classList.add('active');
+                },
+                
+                showError: (msg) => {
+                    const errorDiv = document.getElementById('error-message');
+                    errorDiv.innerHTML = `<div class="error">${msg}</div>`;
+                    setTimeout(() => errorDiv.innerHTML = '', 5000);
                 },
 
                 updateMarquee: () => {
                     const marquee = document.getElementById('alert-marquee');
-                    const items = [];
-                    
-                    state.liveAlerts.train.forEach(alert => {
-                        if (alert.Status) items.push(`<span class="alert-item">🚇 ${alert.Status}</span>`);
-                    });
+                    if (!marquee) return;
+                    let items = [];
+
                     state.liveAlerts.vms.forEach(v => {
-                        if (v.Message) items.push(`<span class="alert-item">📢 ${v.Message}</span>`);
+                        const msg = (v.Message || v.message || '').trim().replace(/,/g, ' ');
+                        if (msg) items.push(`<span class="alert-item">📢 ${msg}</span>`);
+                    });
+                    state.liveAlerts.train.forEach(a => {
+                        if (a.content) items.push(`<span class="alert-item">🚇 ${a.line || ''}: ${a.content}</span>`);
                     });
                     state.liveAlerts.incidents.forEach(i => {
-                        if (i.message) items.push(`<span class="alert-item">⚠️ ${i.type}: ${i.message}</span>`);
+                        const desc = i.description || i.message || '';
+                        if (desc) items.push(`<span class="alert-item">⚠️ ${i.type}: ${desc}</span>`);
                     });
 
                     if (items.length === 0) {
@@ -281,6 +286,9 @@
                             app.data.loadLayer(CONFIG.API.SQL, '/api/carparks', layers.carparks, icons.carpark, 'carparks-count'),
                             app.data.loadLayer(CONFIG.API.SQL, '/api/taxi-stops', layers.taxiStops, icons.taxiStop, 'taxi-stops-count'),
                             app.data.loadCameras(),
+                            app.data.loadIncidents(),
+                            app.data.loadVMS(),
+                            app.data.loadTrainAlerts(),
                             app.data.loadStatistics()
                         ]);
                         app.ui.updateMarquee();
@@ -326,81 +334,258 @@
                     document.getElementById('traffic-cameras-count').textContent = data.length;
                 },
 
-                loadStatistics: async () => {
-                    const stats = await app.data.fetch(CONFIG.API.SQL, '/api/stats');
-                    const statsGrid = document.getElementById('stats-grid');
-                    statsGrid.innerHTML = `
-                        <div class="stat-card"><div class="number">${stats.total_bus_stops?.toLocaleString() || 0}</div><div class="label">Bus Stops</div></div>
-                        <div class="stat-card"><div class="number">${stats.total_train_stations || 0}</div><div class="label">Train Stations</div></div>
-                        <div class="stat-card"><div class="number">${stats.total_carparks || 0}</div><div class="label">Carparks</div></div>
-                        <div class="stat-card"><div class="number">${stats.total_taxi_stops || 0}</div><div class="label">Taxi Stands</div></div>
-                        <div class="stat-card"><div class="number">${stats.total_traffic_cameras || 0}</div><div class="label">Traffic Cameras</div></div>
-                        <div class="stat-card"><div class="number">${stats.total_bus_routes?.toLocaleString() || 0}</div><div class="label">Bus Routes</div></div>
-                    `;
+                loadIncidents: async () => {
+                    const json = await app.data.fetch(CONFIG.API.NOSQL, '/api/v1/traffic/incidents');
+                    const data = json.incidents || [];  // Changed from json.data to json.incidents
+                    state.liveAlerts.incidents = data;
+                    layers.incidents.clearLayers();
+                    data.forEach(inc => {
+                        if (inc.latitude && inc.longitude) {
+                            L.marker([inc.latitude, inc.longitude], { icon: icons.getIncident(inc.type) })
+                                .bindPopup(`<b>${inc.type}</b><br>${inc.description}`)  // Changed from inc.message to inc.description
+                                .addTo(layers.incidents);
+                        }
+                    });
+                    document.getElementById("incidents-count").textContent = data.length;
                 },
 
-                clearCache: () => {
-                    if (confirm('Clear all cached data? This will reload everything.')) {
-                        localStorage.clear();
-                        location.reload();
+                loadVMS: async () => {
+                    // VMS endpoint not implemented yet
+                    state.liveAlerts.vms = [];
+                },
+
+                loadTrainAlerts: async () => {
+                    // Train alerts endpoint not implemented yet
+                    state.liveAlerts.train = [];
+                },
+
+                loadStatistics: async () => {
+                    const stats = await app.data.fetch(CONFIG.API.SQL, '/api/stats');
+                    if (!stats) return;
+                    
+                    const grid = document.getElementById('stats-grid');
+                    grid.innerHTML = '';
+                    const items = [
+                        { l: 'Bus Stops', v: stats.total_bus_stops },
+                        { l: 'Train Stations', v: stats.total_train_stations },
+                        { l: 'Carparks', v: stats.total_carparks },
+                        { l: 'Taxi Stands', v: stats.total_taxi_stops },
+                        { l: 'Traffic Cameras', v: stats.total_traffic_cameras },
+                        { l: 'Bus Routes', v: stats.total_bus_routes }
+                    ];
+                    items.forEach(i => {
+                        grid.innerHTML += `<div class="stat-card"><div class="number">${(i.v || 0).toLocaleString()}</div><div class="label">${i.l}</div></div>`;
+                    });
+                },
+
+                clearCache: async () => {
+                    if (!confirm('Are you sure you want to clear ALL MongoDB and Redis caches? This will force an immediate data refresh from external APIs.')) {
+                        return;
+                    }
+                    
+                    document.getElementById('loading').style.display = 'block';
+                    try {
+                        const url = `${CONFIG.API.NOSQL}/api/cache/clear`;
+                        const response = await fetch(url, { method: 'DELETE' });
+                        
+                        if (!response.ok) {
+                            const errorJson = await response.json();
+                            throw new Error(`Server failed to clear cache: ${errorJson.error}`);
+                        }
+                        
+                        const json = await response.json();
+                        alert(`Cache cleared successfully: ${json.deletedCount} MongoDB records deleted. Redis: ${json.redisKeysDeleted}`);
+                        
+                        await app.data.refreshAll(); 
+
+                    } catch (error) {
+                        console.error('Error clearing cache:', error);
+                        app.ui.showError(`Failed to clear cache: ${error.message}`);
+                    } finally {
+                        document.getElementById('loading').style.display = 'none';
                     }
                 }
             },
 
-            // --- Route Planning ---
+            // --- Routing Logic ---
             routing: {
-                planRoute: () => {
-                    alert('Route planning feature coming soon!');
+                setMode: (mode) => {
+                    state.routeMode = mode;
+                    document.querySelectorAll('.mode-button').forEach(btn => btn.classList.remove('active'));
+                    event.target.classList.add('active');
                 },
+
+                setAlgo: (algo) => {
+                    state.routingAlgo = algo;
+                    document.querySelectorAll('#algo-neo4j').forEach(btn => btn.classList.remove('active'));
+                    document.getElementById(`algo-${algo}`).classList.add('active');
+                },
+
                 clearRoute: () => {
+                    state.neo4jRouteLines.forEach(l => map.removeLayer(l));
+                    state.neo4jRouteLines = [];
+                    
                     if (state.routeMarkers.from) map.removeLayer(state.routeMarkers.from);
                     if (state.routeMarkers.to) map.removeLayer(state.routeMarkers.to);
                     state.routeMarkers = { from: null, to: null };
+
                     document.getElementById('route-from').value = '';
                     document.getElementById('route-to').value = '';
-                    document.getElementById('route-info-box').style.display = 'none';
+                    document.getElementById('route-info').style.display = 'none';
+                    document.getElementById('nearby-stops-container').style.display = 'none';
+                },
+
+                planRoute: async () => {
+                    const fromStr = document.getElementById('route-from').value;
+                    const toStr = document.getElementById('route-to').value;
+                    if (!fromStr || !toStr) return alert('Select start and end points');
+
+                    const from = fromStr.split(',').map(Number);
+                    const to = toStr.split(',').map(Number);
+
+                    state.neo4jRouteLines.forEach(l => map.removeLayer(l));
+                    state.neo4jRouteLines = [];
+
+                    await app.routing.runNeo4j(from, to);
+                },
+
+                runNeo4j: async (from, to) => {
+                    const infoDiv = document.getElementById('route-info');
+                    const detailDiv = document.getElementById('route-details');
+                    infoDiv.style.display = 'block';
+                    detailDiv.innerHTML = '<div>🔄 Calculating route...</div>';
+
+                    try {
+                        const res = await fetch(`${CONFIG.API.NOSQL}/api/routing/optimize?start_lat=${from[0]}&start_lon=${from[1]}&end_lat=${to[0]}&end_lon=${to[1]}&vehicle_type=car`);
+                        if (!res.ok) throw new Error('Routing failed');
+                        const json = await res.json();
+                        if (!json.routes?.length) throw new Error('No route found');
+
+                        const route = json.routes[0];
+                        app.routing.showDetails(route.distance_km, route.estimated_duration_minutes, route.name);
+                        app.routing.renderDirections(route.directions);
+                        app.routing.drawNeo4jPath(route);
+                    } catch (err) {
+                        detailDiv.innerHTML = `<div class="error">${err.message}</div>`;
+                    }
+                },
+
+                showDetails: (dist, time, name) => {
+                    document.getElementById('route-info').style.display = 'block';
+                    document.getElementById('route-details').innerHTML = `
+                        <div class="route-detail"><span>🚗 Route:</span> <strong>${name}</strong></div>
+                        <div class="route-detail"><span>Distance:</span> <strong>${dist} km</strong></div>
+                        <div class="route-detail"><span>Duration:</span> <strong>${time} mins</strong></div>
+                    `;
+                },
+
+                renderDirections: (directions) => {
+                    if (!directions?.length) return;
+                    const html = directions.map(dir => {
+                        let icon = '➡️';
+                        if (dir.toLowerCase().includes('left')) icon = '⬅️';
+                        if (dir.toLowerCase().includes('right')) icon = '➡️';
+                        if (dir.toLowerCase().includes('u-turn')) icon = '↩️';
+                        return `<div style="padding: 5px; border-bottom: 1px solid #eee;">${icon} ${dir}</div>`;
+                    }).join('');
+                    document.getElementById('route-details').innerHTML += `
+                        <div style="margin-top: 10px; max-height: 200px; overflow-y: auto; background: white; padding: 5px;">
+                            <strong>Directions:</strong><br>${html}
+                        </div>`;
+                },
+
+                drawNeo4jPath: (route) => {
+                    if (route.path_coordinates && route.path_coordinates.length > 0) {
+                        
+                        if (route.segment_details && route.segment_details.length > 0) {
+                            for (let i = 0; i < route.segment_details.length; i++) {
+                                const segment = route.segment_details[i];
+                                const speed = segment.speed;
+                                let color = '#4caf50'; // Green (Fast)
+                                
+                                if (speed < 20) color = '#ff0000';      // Red (Jam)
+                                else if (speed < 40) color = '#ff9800'; // Orange
+                                else if (speed < 60) color = '#ffeb3b'; // Yellow
+
+                                const line = L.polyline([route.path_coordinates[i], route.path_coordinates[i + 1]], {
+                                    color: color, weight: 6, opacity: 0.8
+                                }).addTo(map).bindPopup(`<b>${segment.road_name}</b><br>Speed: ${Math.round(speed)} km/h`);
+                                state.neo4jRouteLines.push(line);
+                            }
+                            
+                            const legend = L.control({position: 'bottomright'});
+                            legend.onAdd = function() {
+                                const div = L.DomUtil.create('div', 'traffic-legend');
+                                div.innerHTML = `<div style="background: white; padding: 10px; border-radius: 5px;"><b>Traffic Speed</b><br><i style="background: #4caf50; width: 20px; height: 3px; display: inline-block;"></i> > 60 km/h<br><i style="background: #ffeb3b; width: 20px; height: 3px; display: inline-block;"></i> 40-60 km/h<br><i style="background: #ff9800; width: 20px; height: 3px; display: inline-block;"></i> 20-40 km/h<br><i style="background: #ff0000; width: 20px; height: 3px; display: inline-block;"></i> < 20 km/h</div>`;
+                                return div;
+                            };
+                            legend.addTo(map);
+                            state.neo4jRouteLines.push(legend);
+
+                        } else {
+                            const line = L.polyline(route.path_coordinates, { color: '#ff6b6b', weight: 5 }).addTo(map);
+                            state.neo4jRouteLines.push(line);
+                        }
+                        
+                        map.fitBounds(L.latLngBounds(route.path_coordinates));
+                    }
+                }
+            },
+
+            // --- HELPERS ---
+            utils: {
+                calculateDistance: (lat1, lon1, lat2, lon2) => {
+                    const R = 6371e3; // Earth radius (m)
+                    const φ1 = lat1 * Math.PI/180, φ2 = lat2 * Math.PI/180;
+                    const Δφ = (lat2-lat1) * Math.PI/180, Δλ = (lon2-lon1) * Math.PI/180;
+                    const a = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2) * Math.sin(Δλ/2)**2;
+                    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                },
+                findNearbyStops: (lat, lng) => {
+                    const nearby = state.allBusStops
+                        .map(stop => ({ ...stop, dist: app.utils.calculateDistance(lat, lng, stop.Latitude, stop.Longitude) }))
+                        .sort((a, b) => a.dist - b.dist)
+                        .slice(0, 5);
+                    const container = document.getElementById('nearby-stops');
+                    container.innerHTML = nearby.map(stop => `<div class="stop-item" onclick="map.setView([${stop.Latitude}, ${stop.Longitude}], 17)"><strong>${stop.Description}</strong><br><small>${stop.RoadName} - ${stop.dist.toFixed(0)}m away</small></div>`).join('');
+                    document.getElementById('nearby-stops-container').style.display = 'block';
                 }
             }
         };
 
-        /**
-         * ============================================================================
-         * 3. EVENT LISTENERS
-         * ============================================================================
-         */
-        // Toggle layer visibility
-        ['bus-stops', 'train-stations', 'carparks', 'taxi-stops', 'traffic-cameras', 'incidents'].forEach(layer => {
-            const checkbox = document.getElementById(`show-${layer}`);
-            if (checkbox) {
-                checkbox.addEventListener('change', (e) => {
-                    const layerKey = layer.replace(/-([a-z])/g, (g) => g[1].toUpperCase()).replace(/-/g, '');
-                    const layerMap = {
-                        'busStops': layers.busStops,
-                        'trainStations': layers.trainStations,
-                        'carparks': layers.carparks,
-                        'taxiStops': layers.taxiStops,
-                        'trafficCameras': layers.trafficCameras,
-                        'incidents': layers.incidents
-                    };
-                    
-                    if (e.target.checked) {
-                        layerMap[layerKey].addTo(map);
-                    } else {
-                        map.removeLayer(layerMap[layerKey]);
-                    }
-                });
+        // --- EVENTS ---
+        map.on('click', (e) => {
+            if (!document.getElementById('route-tab').classList.contains('active')) return;
+            const lat = e.latlng.lat.toFixed(6), lng = e.latlng.lng.toFixed(6);
+            const inputFrom = document.getElementById('route-from');
+            const inputTo = document.getElementById('route-to');
+
+            if (!inputFrom.value) {
+                inputFrom.value = `${lat}, ${lng}`;
+                if (state.routeMarkers.from) map.removeLayer(state.routeMarkers.from);
+                state.routeMarkers.from = L.marker([lat, lng], { icon: icons.routeStart }).addTo(map);
+            } else if (!inputTo.value) {
+                inputTo.value = `${lat}, ${lng}`;
+                if (state.routeMarkers.to) map.removeLayer(state.routeMarkers.to);
+                state.routeMarkers.to = L.marker([lat, lng], { icon: icons.routeEnd }).addTo(map);
+                app.utils.findNearbyStops(lat, lng);
             }
         });
 
-        /**
-         * ============================================================================
-         * 4. INITIALIZATION
-         * ============================================================================
-         */
-        window.addEventListener('DOMContentLoaded', () => {
-            console.log('Smart City Dashboard Initialized');
-            app.data.refreshAll();
-        });
+        // --- Layer Toggles ---
+        const setupToggle = (id, layerName) => {
+            const el = document.getElementById(id);
+            if(el) el.addEventListener('change', (e) => e.target.checked ? map.addLayer(layers[layerName]) : map.removeLayer(layers[layerName]));
+        };
+        setupToggle('show-bus-stops', 'busStops');
+        setupToggle('show-train-stations', 'trainStations');
+        setupToggle('show-carparks', 'carparks');
+        setupToggle('show-taxi-stops', 'taxiStops');
+        setupToggle('show-traffic-cameras', 'trafficCameras');
+        setupToggle('show-incidents', 'incidents');
+
+        app.data.refreshAll();
+
     </script>
 </body>
 </html>

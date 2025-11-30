@@ -95,7 +95,11 @@ async def lifespan(app: FastAPI):
         user = settings.NEO4J_USER
         password = settings.NEO4J_PASSWORD
         
-        neo4j_driver = AsyncGraphDatabase.driver(uri, auth=(user, password))
+        # Neo4j connection - URI scheme (bolt+s/neo4j+s) already handles encryption
+        neo4j_driver = AsyncGraphDatabase.driver(
+            uri, 
+            auth=(user, password)
+        )
         await neo4j_driver.verify_connectivity()
         logger.info("Connected to Neo4j Graph Database")    
 
@@ -375,11 +379,12 @@ async def get_traffic_incidents(
         
         # Filter by time if needed
         if hours_back:
-            cutoff_time = datetime.now(timezone.utc)() - timedelta(hours=hours_back)
+            cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours_back)
             query['cachedAt'] = {'$gte': cutoff_time}
         
-        # Fetch from database
-        incidents = list(collection.find(query).sort('cachedAt', -1))
+        # Fetch from database (async cursor needs await)
+        cursor = collection.find(query).sort('cachedAt', -1)
+        incidents = await cursor.to_list(length=None)  # Get all documents
         
         # Format response
         formatted_incidents = []
@@ -390,7 +395,7 @@ async def get_traffic_incidents(
                 "description": inc.get('Message', ''),
                 "latitude": inc.get('Latitude'),
                 "longitude": inc.get('Longitude'),
-                "start_time": inc.get('cachedAt', datetime.now(timezone.utc)()).isoformat(),
+                "start_time": inc.get('cachedAt', datetime.now(timezone.utc)).isoformat(),
                 "is_active": True,
                 "reported_by": "LTA DataMall"
             })
@@ -623,6 +628,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,
+        port=8001,
         reload=settings.DEBUG
     )
