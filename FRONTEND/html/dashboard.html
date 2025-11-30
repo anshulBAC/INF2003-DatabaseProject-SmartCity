@@ -19,9 +19,9 @@
     </div>
 
     <div class="container">
-        
+
         <div class="sidebar">
-            
+
             <div class="tab-buttons">
                 <div class="tab-button active" onclick="app.ui.switchTab('layers')">🗺️ Layers</div>
                 <div class="tab-button" onclick="app.ui.switchTab('route')">🧭 Routes</div>
@@ -30,7 +30,10 @@
             <div id="layers-tab" class="tab-content active">
                 <h2>📊 Statistics</h2>
                 <div class="stats-grid" id="stats-grid">
-                    <div class="stat-card"><div class="number">-</div><div class="label">Loading...</div></div>
+                    <div class="stat-card">
+                        <div class="number">-</div>
+                        <div class="label">Loading...</div>
+                    </div>
                 </div>
 
                 <div class="control-group">
@@ -70,15 +73,26 @@
                 </div>
 
                 <button onclick="app.data.refreshAll()">🔄 Refresh Data</button>
-                <button onclick="app.data.clearCache()" style="background: #dc3545; margin-top: 10px;">🗑️ Clear All Cache</button> 
+                <button onclick="app.data.clearCache()" style="background: #dc3545; margin-top: 10px;">🗑️ Clear All
+                    Cache</button>
 
                 <div class="legend">
                     <h3>Legend</h3>
-                    <div class="legend-item"><div class="legend-color" style="background: #3388ff;"></div><span>Bus Stops</span></div>
-                    <div class="legend-item"><div class="legend-color" style="background: #ff0000;"></div><span>Train Stations</span></div>
-                    <div class="legend-item"><div class="legend-color" style="background: #00ff00;"></div><span>Carparks</span></div>
-                    <div class="legend-item"><div class="legend-color" style="background: #ffaa00;"></div><span>Taxi Stands</span></div>
-                    <div class="legend-item"><div class="legend-color" style="background: #9900ff;"></div><span>Traffic Cameras</span></div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #3388ff;"></div><span>Bus Stops</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ff0000;"></div><span>Train Stations</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #00ff00;"></div><span>Carparks</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ffaa00;"></div><span>Taxi Stands</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #9900ff;"></div><span>Traffic Cameras</span>
+                    </div>
                 </div>
             </div>
 
@@ -96,7 +110,8 @@
                 </div>
 
                 <button onclick="app.routing.planRoute()" id="plan-route-btn">Find Route</button>
-                <button onclick="app.routing.clearRoute()" style="margin-top: 10px; background: #dc3545;">Clear Route</button>
+                <button onclick="app.routing.clearRoute()" style="margin-top: 10px; background: #dc3545;">Clear
+                    Route</button>
 
                 <div id="route-info" class="route-info" style="display: none;">
                     <h4>Route Information</h4>
@@ -181,14 +196,26 @@
 
         // Icon Generators
         const icons = {
-            create: (color, size=[12,12], anchor=[6,6]) => L.icon({
-                iconUrl: `data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iJHtjb2xvcn0iIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIGZpbGw9IiR7Y29sb3J9IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=`.replace('#', '%23'),
-                iconSize: size, iconAnchor: anchor, popupAnchor: [0, -anchor[1]]
+            // ⭐ Updated marker generator (matches legend color clearly)
+            create: (color, size = [9, 9], anchor = [4, 4]) => L.icon({
+                iconUrl:
+                    `data:image/svg+xml;base64,` +
+                    btoa(`
+                <svg width="${size[0]}" height="${size[1]}" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="${size[0] / 2}" cy="${size[1] / 2}" r="${(size[0] / 2) - 1}"
+                        fill="${color}" stroke="${color}" stroke-width="1" />
+                </svg>
+            `),
+                iconSize: size,
+                iconAnchor: anchor,
+                popupAnchor: [0, -anchor[1]]
             }),
+
             routeStart: L.icon({
                 iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iNDUiIHZpZXdCb3g9IjAgMCAzMCA0NSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTUgMEMxMC4wMjk0IDAgNiA0LjAyOTQzIDYgOUM2IDEzLjk3MDYgMTUgMjcgMTUgMjdDMTUgMjcgMjQgMTMuOTcwNiAyNCA5QzI0IDQuMDI5NDMgMTkuOTcwNiAwIDE1IDBaIiBmaWxsPSIjRkYwMDAwIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiLz48Y2lyY2xlIGN4PSIxNSIgY3k9IjkiIHI9IjUiIGZpbGw9IndoaXRlIi8+PC9zdmc+',
                 iconSize: [30, 45], iconAnchor: [15, 45], popupAnchor: [0, -45]
             }),
+
             routeEnd: L.icon({
                 iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iNDUiIHZpZXdCb3g9IjAgMCAzMCA0NSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTUgMEMxMC4wMjk0IDAgNiA0LjAyOTQzIDYgOUM2IDEzLjk3MDYgMTUgMjcgMTUgMjdDMTUgMjcgMjQgMTMuOTcwNiAyNCA5QzI0IDQuMDI5NDMgMTkuOTcwNiAwIDE1IDBaIiBmaWxsPSIjMDBGRjAwIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiLz48Y2lyY2xlIGN4PSIxNSIgY3k9IjkiIHI9IjUiIGZpbGw9IndoaXRlIi8+PC9zdmc+',
                 iconSize: [30, 45], iconAnchor: [15, 45], popupAnchor: [0, -45]
@@ -207,10 +234,10 @@
 
         // Static Icons
         icons.busStop = icons.create('#3388ff');
-        icons.trainStation = icons.create('#ff0000', [14, 14], [7, 7]);
+        icons.trainStation = icons.create('#ff0000');
         icons.carpark = icons.create('#00ff00');
         icons.taxiStop = icons.create('#ffaa00');
-        icons.trafficCamera = icons.create('#9900ff', [14, 14], [7, 7]);
+        icons.trafficCamera = icons.create('#9900ff');
 
         /**
          * ============================================================================
@@ -227,7 +254,7 @@
                     document.querySelectorAll('.tab-button')[btnIndex].classList.add('active');
                     document.getElementById(`${tab}-tab`).classList.add('active');
                 },
-                
+
                 showError: (msg) => {
                     const errorDiv = document.getElementById('error-message');
                     errorDiv.innerHTML = `<div class="error">${msg}</div>`;
@@ -298,29 +325,29 @@
                 },
 
                 // Generic Point Layer Loader
-                loadLayer: async (baseUrl, endpoint, layerGroup, icon, countId, limit=1000) => {
+                loadLayer: async (baseUrl, endpoint, layerGroup, icon, countId, limit = 1000) => {
                     const data = await app.data.fetch(baseUrl, endpoint, limit);
                     layerGroup.clearLayers();
-                    
-                    if(endpoint.includes('bus-stops')) state.allBusStops = data;
+
+                    if (endpoint.includes('bus-stops')) state.allBusStops = data;
 
                     data.forEach(item => {
                         const lat = item.Latitude || (item.Location ? parseFloat(item.Location.split(' ')[0]) : null);
                         const lng = item.Longitude || (item.Location ? parseFloat(item.Location.split(' ')[1]) : null);
-                        
+
                         if (lat && lng) {
                             const name = item.Description || item.StationName || item.Development || "Location";
                             const code = item.BusStopCode || item.StationCode || item.CarParkID || item.TaxiCode || "";
-                            
+
                             let popup = `<b>${name}</b><br>${code ? 'Code: ' + code : ''}`;
-                            if(item.AvailableLots !== undefined) {
+                            if (item.AvailableLots !== undefined) {
                                 popup += `<br>Available: ${item.AvailableLots} ${item.LotType || ''} lots`;
                             }
 
                             L.marker([lat, lng], { icon: icon }).bindPopup(popup).addTo(layerGroup);
                         }
                     });
-                    if(document.getElementById(countId)) document.getElementById(countId).textContent = data.length;
+                    if (document.getElementById(countId)) document.getElementById(countId).textContent = data.length;
                 },
 
                 loadCameras: async () => {
@@ -362,7 +389,7 @@
                 loadStatistics: async () => {
                     const stats = await app.data.fetch(CONFIG.API.SQL, '/api/stats');
                     if (!stats) return;
-                    
+
                     const grid = document.getElementById('stats-grid');
                     grid.innerHTML = '';
                     const items = [
@@ -382,21 +409,21 @@
                     if (!confirm('Are you sure you want to clear ALL MongoDB and Redis caches? This will force an immediate data refresh from external APIs.')) {
                         return;
                     }
-                    
+
                     document.getElementById('loading').style.display = 'block';
                     try {
                         const url = `${CONFIG.API.NOSQL}/api/cache/clear`;
                         const response = await fetch(url, { method: 'DELETE' });
-                        
+
                         if (!response.ok) {
                             const errorJson = await response.json();
                             throw new Error(`Server failed to clear cache: ${errorJson.error}`);
                         }
-                        
+
                         const json = await response.json();
                         alert(`Cache cleared successfully: ${json.deletedCount} MongoDB records deleted. Redis: ${json.redisKeysDeleted}`);
-                        
-                        await app.data.refreshAll(); 
+
+                        await app.data.refreshAll();
 
                     } catch (error) {
                         console.error('Error clearing cache:', error);
@@ -424,7 +451,7 @@
                 clearRoute: () => {
                     state.neo4jRouteLines.forEach(l => map.removeLayer(l));
                     state.neo4jRouteLines = [];
-                    
+
                     if (state.routeMarkers.from) map.removeLayer(state.routeMarkers.from);
                     if (state.routeMarkers.to) map.removeLayer(state.routeMarkers.to);
                     state.routeMarkers = { from: null, to: null };
@@ -496,13 +523,13 @@
 
                 drawNeo4jPath: (route) => {
                     if (route.path_coordinates && route.path_coordinates.length > 0) {
-                        
+
                         if (route.segment_details && route.segment_details.length > 0) {
                             for (let i = 0; i < route.segment_details.length; i++) {
                                 const segment = route.segment_details[i];
                                 const speed = segment.speed;
                                 let color = '#4caf50'; // Green (Fast)
-                                
+
                                 if (speed < 20) color = '#ff0000';      // Red (Jam)
                                 else if (speed < 40) color = '#ff9800'; // Orange
                                 else if (speed < 60) color = '#ffeb3b'; // Yellow
@@ -512,9 +539,9 @@
                                 }).addTo(map).bindPopup(`<b>${segment.road_name}</b><br>Speed: ${Math.round(speed)} km/h`);
                                 state.neo4jRouteLines.push(line);
                             }
-                            
-                            const legend = L.control({position: 'bottomright'});
-                            legend.onAdd = function() {
+
+                            const legend = L.control({ position: 'bottomright' });
+                            legend.onAdd = function () {
                                 const div = L.DomUtil.create('div', 'traffic-legend');
                                 div.innerHTML = `<div style="background: white; padding: 10px; border-radius: 5px;"><b>Traffic Speed</b><br><i style="background: #4caf50; width: 20px; height: 3px; display: inline-block;"></i> > 60 km/h<br><i style="background: #ffeb3b; width: 20px; height: 3px; display: inline-block;"></i> 40-60 km/h<br><i style="background: #ff9800; width: 20px; height: 3px; display: inline-block;"></i> 20-40 km/h<br><i style="background: #ff0000; width: 20px; height: 3px; display: inline-block;"></i> < 20 km/h</div>`;
                                 return div;
@@ -526,7 +553,7 @@
                             const line = L.polyline(route.path_coordinates, { color: '#ff6b6b', weight: 5 }).addTo(map);
                             state.neo4jRouteLines.push(line);
                         }
-                        
+
                         map.fitBounds(L.latLngBounds(route.path_coordinates));
                     }
                 }
@@ -536,10 +563,10 @@
             utils: {
                 calculateDistance: (lat1, lon1, lat2, lon2) => {
                     const R = 6371e3; // Earth radius (m)
-                    const φ1 = lat1 * Math.PI/180, φ2 = lat2 * Math.PI/180;
-                    const Δφ = (lat2-lat1) * Math.PI/180, Δλ = (lon2-lon1) * Math.PI/180;
-                    const a = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2) * Math.sin(Δλ/2)**2;
-                    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                    const φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180;
+                    const Δφ = (lat2 - lat1) * Math.PI / 180, Δλ = (lon2 - lon1) * Math.PI / 180;
+                    const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+                    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
                 },
                 findNearbyStops: (lat, lng) => {
                     const nearby = state.allBusStops
@@ -575,7 +602,7 @@
         // --- Layer Toggles ---
         const setupToggle = (id, layerName) => {
             const el = document.getElementById(id);
-            if(el) el.addEventListener('change', (e) => e.target.checked ? map.addLayer(layers[layerName]) : map.removeLayer(layers[layerName]));
+            if (el) el.addEventListener('change', (e) => e.target.checked ? map.addLayer(layers[layerName]) : map.removeLayer(layers[layerName]));
         };
         setupToggle('show-bus-stops', 'busStops');
         setupToggle('show-train-stations', 'trainStations');
@@ -588,4 +615,5 @@
 
     </script>
 </body>
+
 </html>

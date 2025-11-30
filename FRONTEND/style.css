@@ -507,3 +507,6 @@ button:disabled {
     background: transparent !important;
     border: none !important;  
 }
+.leaflet-control-zoom {
+    margin-top: 120px !important; 
+}
